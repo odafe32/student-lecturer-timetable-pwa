@@ -1,52 +1,29 @@
 @extends('layout.auth')
 
 @section('content')
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">Offline</div>
+    <!-- Hero Block Wrapper -->
+    <div class="hero-block-wrapper bg-primary">
+        <!-- Styles -->
+        <div class="hero-block-styles">
+            <div class="hb-styles1" style="background-image: url('{{ url('img/core-img/dot.png') }}')"></div>
+            <div class="hb-styles2"></div>
+            <div class="hb-styles3"></div>
+        </div>
 
-                    <div class="card-body">
-                        <div class="alert alert-info">
-                            It looks like you're currently offline. Please check your internet connection.
-                        </div>
-                    </div>
+        <div class="custom-container">
+            <!-- Skip Page -->
+            <div class="skip-page">
+                <a href="">Skip</a>
+            </div>
 
-                </div>
+            <!-- Hero Block Content -->
+            <div class="hero-block-content text-center">
+                <img class="mb-4" src="{{ url('img/bg-img/19.png') }}" alt="Timetable Illustration">
+                <h2 class="display-4 text-white mb-3">Smart Timetables Students</h2>
+                <p class="text-white">Access your personalized lecture schedules anytime, anywhere. Fast, easy, and always
+                    up to date.</p>
+                <a class="btn btn-warning btn-lg w-100" href="">Get Started</a>
             </div>
         </div>
     </div>
-
-    <button id="install-button" style="display: none;">Install App</button>
-
-    <script>
-        let deferredPrompt;
-        const installButton = document.getElementById('install-button');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent Chrome 67 and earlier from automatically showing the prompt
-            e.preventDefault();
-            // Stash the event so it can be triggered later
-            deferredPrompt = e;
-            // Update UI to notify the user they can add to home screen
-            installButton.style.display = 'block';
-
-            installButton.addEventListener('click', () => {
-                // Hide the app provided install promotion
-                installButton.style.display = 'none';
-                // Show the install prompt
-                deferredPrompt.prompt();
-                // Wait for the user to respond to the prompt
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted the install prompt');
-                    } else {
-                        console.log('User dismissed the install prompt');
-                    }
-                    deferredPrompt = null;
-                });
-            });
-        });
-    </script>
 @endsection
