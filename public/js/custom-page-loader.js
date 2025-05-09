@@ -1,9 +1,5 @@
 // Combined Page Transition Loader
 // This script implements both a horizontal progress bar and a dot animation loader
-// While preventing Chrome's default loading indicator
-
-// Track initialization to prevent duplicate event listeners
-let isInitialized = false;
 
 // Create the custom dot animation loader element
 function createDotAnimationLoader() {
@@ -184,50 +180,72 @@ function addLoaderStyles() {
       }
     }
     
-    /* Hidden iframe for AJAX navigation */
-    .navigation-frame {
-      display: none;
-      width: 0;
-      height: 0;
-      border: 0;
+    /* Hide browser's built-in loading indicator */
+    html.nprogress-busy body {
+      cursor: default !important;
+    }
+    
+    html.nprogress-busy #nprogress {
+      display: none !important;
+    }
+    
+    /* Hide Chrome's loading spinner in the tab */
+    @keyframes disableAnimation {
+      0% { opacity: 0; }
+      100% { opacity: 0; }
+    }
+    
+    /* This targets Chrome's throbber specifically */
+    html:not([data-preloader]) .preloader-container,
+    html:not([data-preloader]) .preloader-icon,
+    html:not([data-preloader]) .spinner-container,
+    html:not([data-preloader]) .spinner {
+      display: none !important;
+      animation: disableAnimation 0.001s infinite !important;
+      opacity: 0 !important;
+      z-index: -9999 !important;
+      pointer-events: none !important;
     }
   `;
   
   document.head.appendChild(styleElement);
 }
 
-// Create a hidden iframe for AJAX navigation
-function createNavigationFrame() {
-  if (document.getElementById('navigationFrame')) {
-    return;
-  }
+// Function to disable browser's built-in loading indicator
+function disableBrowserLoadingIndicator() {
+  // Add a meta tag to help disable Chrome's loading indicator
+  const meta = document.createElement('meta');
+  meta.name = 'theme-color';
+  meta.content = '#ffffff';
+  document.head.appendChild(meta);
   
+  // Add a class to the HTML element
+  document.documentElement.classList.add('custom-loader-active');
+  
+  // Create a hidden iframe to intercept navigation and prevent browser loading indicator
   const iframe = document.createElement('iframe');
-  iframe.id = 'navigationFrame';
-  iframe.className = 'navigation-frame';
+  iframe.id = 'navigation-interceptor';
+  iframe.style.display = 'none';
   iframe.setAttribute('aria-hidden', 'true');
-  iframe.tabIndex = -1;
   document.body.appendChild(iframe);
   
-  return iframe;
+  // Disable browser's default behavior for links
+  document.addEventListener('click', function(event) {
+    const link = event.target.closest('a');
+    if (link && link.href && !link.getAttribute('target') && link.origin === window.location.origin) {
+      // Prevent default only for internal links
+      if (!link.getAttribute('href').startsWith('#') && 
+          !link.getAttribute('href').startsWith('javascript:') &&
+          !link.getAttribute('href').startsWith('tel:') &&
+          !link.getAttribute('href').startsWith('mailto:')) {
+        event.preventDefault();
+      }
+    }
+  }, true);
 }
-
-// Store event listeners for cleanup
-const eventListeners = {
-  click: null,
-  submit: null,
-  popstate: null
-};
 
 // Initialize both loaders and intercept navigation
 function initPageLoaders() {
-  // Prevent duplicate initialization
-  if (isInitialized) {
-    return;
-  }
-  
-  isInitialized = true;
-  
   // Create both loader elements
   createDotAnimationLoader();
   createHorizontalProgressLoader();
@@ -235,8 +253,8 @@ function initPageLoaders() {
   // Add styles for both loaders
   addLoaderStyles();
   
-  // Create navigation frame for AJAX
-  const navigationFrame = createNavigationFrame();
+  // Disable browser's built-in loading indicator
+  disableBrowserLoadingIndicator();
   
   // Get loader elements
   const dotLoader = document.getElementById('pageLoader');
@@ -246,10 +264,9 @@ function initPageLoaders() {
   let progressInterval;
   let currentProgress = 0;
   let navigationInProgress = false;
-  let navigationTimeout;
-  
-  // Track active navigation requests to prevent duplicate loaders
-  let activeNavigationRequests = 0;
+  let loaderTimeoutId = null; // Track the timeout ID
+  let pendingRequests = 0; // Track number of pending AJAX requests
+  let isUserInitiatedNavigation = false; // Flag for user-initiated navigation
   
   // Function to show dot loader
   function showDotLoader() {
@@ -261,6 +278,12 @@ function initPageLoaders() {
   function hideDotLoader() {
     navigationInProgress = false;
     dotLoader.classList.remove('show');
+    
+    // Clear the timeout if it exists
+    if (loaderTimeoutId) {
+      clearTimeout(loaderTimeoutId);
+      loaderTimeoutId = null;
+    }
   }
   
   // Function to animate progress
@@ -321,294 +344,78 @@ function initPageLoaders() {
   
   // Function to show both loaders
   function showLoaders() {
-    // Only show loaders if there are no active requests
-    if (activeNavigationRequests === 0) {
-      // Clear any existing timeout
-      if (navigationTimeout) {
-        clearTimeout(navigationTimeout);
-      }
-      
-      showDotLoader();
-      animateProgress();
-      
-      // Set a timeout to hide loaders if navigation doesn't happen
-      navigationTimeout = setTimeout(() => {
-        if (navigationInProgress) {
-          hideLoaders();
-        }
-      }, 8000); // 8 seconds timeout
+    // If loaders are already shown, don't start a new timeout
+    if (navigationInProgress) {
+      return;
     }
     
-    // Increment active requests counter
-    activeNavigationRequests++;
+    showDotLoader();
+    animateProgress();
+    
+    // Clear any existing timeout
+    if (loaderTimeoutId) {
+      clearTimeout(loaderTimeoutId);
+    }
+    
+    // Set a timeout to hide loaders if navigation doesn't happen
+    loaderTimeoutId = setTimeout(() => {
+      if (navigationInProgress) {
+        hideLoaders();
+      }
+      loaderTimeoutId = null;
+    }, 5000); // 5 seconds timeout (reduced from 8)
   }
   
   // Function to hide both loaders
   function hideLoaders() {
-    // Decrement active requests counter
-    activeNavigationRequests = Math.max(0, activeNavigationRequests - 1);
-    
-    // Only hide loaders if there are no more active requests
-    if (activeNavigationRequests === 0) {
-      // Clear any existing timeout
-      if (navigationTimeout) {
-        clearTimeout(navigationTimeout);
-        navigationTimeout = null;
-      }
-      
+    // Only hide if there are no pending requests
+    if (pendingRequests <= 0) {
       hideDotLoader();
       completeProgress();
+      pendingRequests = 0; // Reset counter to ensure it doesn't go negative
     }
   }
   
-  // Function to check if a URL is likely to be a navigation request
+  // Helper function to check if a URL is likely to be a navigation request
   function isNavigationRequest(url) {
-    if (!url || typeof url !== 'string') {
-      return false;
-    }
+    if (!url || typeof url !== 'string') return false;
     
-    // Skip API endpoints, static resources, and AJAX-specific endpoints
-    const skipPatterns = [
+    // Exclude common resource types and API endpoints
+    const nonNavigationPatterns = [
       '/api/',
       '.json',
       '.xml',
-      '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp',
-      '.css', '.js',
-      '.woff', '.woff2', '.ttf', '.eot',
-      '.mp3', '.mp4', '.webm', '.ogg',
-      '.pdf', '.doc', '.docx', '.xls', '.xlsx',
-      'livewire/livewire.js', // Skip Livewire requests
-      'livewire/update', // Skip Livewire updates
-      '_debugbar', // Skip Laravel Debugbar requests
-      'sanctum/csrf-cookie' // Skip Laravel Sanctum requests
+      '.js',
+      '.css',
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.svg',
+      '.woff',
+      '.woff2',
+      '.ttf',
+      '.eot',
+      '/socket.io/',
+      'livewire'
     ];
     
-    return !skipPatterns.some(pattern => url.includes(pattern));
+    return !nonNavigationPatterns.some(pattern => url.includes(pattern));
   }
   
-  // Function to handle link navigation without Chrome's loader
-  function handleLinkNavigation(url) {
+  // Function to handle navigation to a new URL
+  function navigateTo(url) {
+    // Show loaders
     showLoaders();
     
-    // Use fetch to get the page content
-    fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'text/html',
-        'X-Page-Navigation': 'true' // Custom header to identify navigation requests
-      },
-      credentials: 'same-origin'
-    })
-    .then(response => {
-      if (!response.ok) {
-        // If there's an error, just do a normal navigation
-        window.location.href = url;
-        return;
-      }
-      return response.text();
-    })
-    .then(html => {
-      if (html) {
-        try {
-          // Push the new URL to history
-          window.history.pushState({}, '', url);
-          
-          // Parse the HTML
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          
-          // Update the document title
-          document.title = doc.title;
-          
-          // Get the content to replace
-          const newContent = doc.querySelector('body');
-          if (newContent) {
-            // Clean up event listeners before replacing content
-            cleanupEventListeners();
-            
-            // Replace the content
-            document.body.innerHTML = newContent.innerHTML;
-            
-            // Re-initialize the loaders
-            isInitialized = false; // Reset initialization flag
-            initPageLoaders();
-            
-            // Execute any scripts in the new content
-            const scripts = Array.from(newContent.querySelectorAll('script'));
-            scripts.forEach(script => {
-              // Skip inline event handlers and loader script
-              if (script.textContent.includes('custom-page-loader.js') || 
-                  script.src.includes('custom-page-loader.js')) {
-                return;
-              }
-              
-              const newScript = document.createElement('script');
-              Array.from(script.attributes).forEach(attr => {
-                newScript.setAttribute(attr.name, attr.value);
-              });
-              newScript.textContent = script.textContent;
-              document.body.appendChild(newScript);
-            });
-            
-            // Scroll to top
-            window.scrollTo(0, 0);
-            
-            // Dispatch a custom event
-            window.dispatchEvent(new CustomEvent('navigationComplete', { detail: { url } }));
-          } else {
-            // If we couldn't find the content, do a normal navigation
-            window.location.href = url;
-          }
-        } catch (error) {
-          console.error('Error processing navigation:', error);
-          window.location.href = url;
-        }
-      } else {
-        // If there's no HTML, do a normal navigation
-        window.location.href = url;
-      }
-      
-      hideLoaders();
-    })
-    .catch(error => {
-      console.error('Navigation error:', error);
-      // If there's an error, do a normal navigation
+    // Set a timeout to actually navigate
+    setTimeout(() => {
       window.location.href = url;
-      hideLoaders();
-    });
-  }
-  
-  // Function to handle form submission without Chrome's loader
-  function handleFormSubmission(form) {
-    showLoaders();
-    
-    // Get form data
-    const formData = new FormData(form);
-    const method = (form.method || 'GET').toUpperCase();
-    const action = form.action || window.location.href;
-    
-    // For GET requests, build the URL with query parameters
-    let url = action;
-    if (method === 'GET') {
-      const params = new URLSearchParams(formData).toString();
-      url = action + (action.includes('?') ? '&' : '?') + params;
-      
-      // Use the link navigation handler for GET forms
-      handleLinkNavigation(url);
-      return;
-    }
-    
-    // For POST and other methods, use fetch
-    fetch(action, {
-      method: method,
-      body: formData,
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'text/html',
-        'X-Page-Navigation': 'true' // Custom header to identify navigation requests
-      },
-      credentials: 'same-origin'
-    })
-    .then(response => {
-      if (!response.ok) {
-        // If there's an error, submit the form normally
-        form.submit();
-        return;
-      }
-      return response.text();
-    })
-    .then(html => {
-      if (html) {
-        try {
-          // Parse the HTML
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          
-          // Update the document title
-          document.title = doc.title;
-          
-          // Push the new URL to history
-          window.history.pushState({}, '', response.url || action);
-          
-          // Get the content to replace
-          const newContent = doc.querySelector('body');
-          if (newContent) {
-            // Clean up event listeners before replacing content
-            cleanupEventListeners();
-            
-            // Replace the content
-            document.body.innerHTML = newContent.innerHTML;
-            
-            // Re-initialize the loaders
-            isInitialized = false; // Reset initialization flag
-            initPageLoaders();
-            
-            // Execute any scripts in the new content
-            const scripts = Array.from(newContent.querySelectorAll('script'));
-            scripts.forEach(script => {
-              // Skip inline event handlers and loader script
-              if (script.textContent.includes('custom-page-loader.js') || 
-                  script.src.includes('custom-page-loader.js')) {
-                return;
-              }
-              
-              const newScript = document.createElement('script');
-              Array.from(script.attributes).forEach(attr => {
-                newScript.setAttribute(attr.name, attr.value);
-              });
-              newScript.textContent = script.textContent;
-              document.body.appendChild(newScript);
-            });
-            
-            // Scroll to top
-            window.scrollTo(0, 0);
-            
-            // Dispatch a custom event
-            window.dispatchEvent(new CustomEvent('navigationComplete', { detail: { url: response.url || action } }));
-          } else {
-            // If we couldn't find the content, submit the form normally
-            form.submit();
-          }
-        } catch (error) {
-          console.error('Error processing form submission:', error);
-          form.submit();
-        }
-      } else {
-        // If there's no HTML, submit the form normally
-        form.submit();
-      }
-      
-      hideLoaders();
-    })
-    .catch(error => {
-      console.error('Form submission error:', error);
-      // If there's an error, submit the form normally
-      form.submit();
-      hideLoaders();
-    });
-  }
-  
-  // Function to clean up event listeners
-  function cleanupEventListeners() {
-    // Remove click event listener
-    if (eventListeners.click) {
-      document.removeEventListener('click', eventListeners.click, true);
-    }
-    
-    // Remove submit event listener
-    if (eventListeners.submit) {
-      document.removeEventListener('submit', eventListeners.submit, true);
-    }
-    
-    // Remove popstate event listener
-    if (eventListeners.popstate) {
-      window.removeEventListener('popstate', eventListeners.popstate);
-    }
+    }, 50); // Small delay to ensure loader is visible before navigation
   }
   
   // Intercept all link clicks with capture phase to ensure it runs before other handlers
-  eventListeners.click = function(event) {
+  document.addEventListener('click', function(event) {
     // Find closest anchor tag if the clicked element is inside one
     const link = event.target.closest('a');
     
@@ -621,47 +428,102 @@ function initPageLoaders() {
         link.getAttribute('href').startsWith('javascript:') ||
         link.getAttribute('href').startsWith('tel:') ||
         link.getAttribute('href').startsWith('mailto:') ||
-        (link.origin !== window.location.origin) ||
-        link.classList.contains('no-loader') || // Skip links with no-loader class
-        link.hasAttribute('data-no-loader') // Skip links with data-no-loader attribute
+        (link.origin !== window.location.origin)
       ) {
         return;
       }
       
-      // Prevent default navigation to stop Chrome's loader
+      // Prevent default browser navigation
       event.preventDefault();
       
-      // Handle navigation with our custom loader
-      handleLinkNavigation(link.href);
+      // Mark as user-initiated navigation
+      isUserInitiatedNavigation = true;
+      
+      // Show loaders before navigation
+      showLoaders();
+      
+      // Navigate to the URL after a small delay
+      setTimeout(() => {
+        window.location.href = link.href;
+      }, 50);
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isUserInitiatedNavigation = false;
+      }, 500);
     }
-  };
-  document.addEventListener('click', eventListeners.click, true);
+  }, true); // Use capture phase
   
   // Intercept form submissions
-  eventListeners.submit = function(event) {
+  document.addEventListener('submit', function(event) {
     const form = event.target;
     
-    // Skip if the form has a target attribute set to _blank or has no-loader class
-    if (
-      form.getAttribute('target') === '_blank' ||
-      form.classList.contains('no-loader') ||
-      form.hasAttribute('data-no-loader')
-    ) {
+    // Skip if the form has a target attribute set to _blank
+    if (form.getAttribute('target') === '_blank') {
       return;
     }
     
-    // Prevent default submission to stop Chrome's loader
+    // Prevent default form submission
     event.preventDefault();
     
-    // Handle form submission with our custom loader
-    handleFormSubmission(form);
-  };
-  document.addEventListener('submit', eventListeners.submit, true);
+    // Mark as user-initiated navigation
+    isUserInitiatedNavigation = true;
+    
+    // Show loaders before form submission
+    showLoaders();
+    
+    // Submit the form programmatically after a small delay
+    setTimeout(() => {
+      // Create a hidden input for the submit button if it was clicked
+      if (event.submitter && event.submitter.name) {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = event.submitter.name;
+        hiddenInput.value = event.submitter.value || '';
+        form.appendChild(hiddenInput);
+      }
+      
+      form.submit();
+    }, 50);
+    
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      isUserInitiatedNavigation = false;
+    }, 500);
+  }, true); // Use capture phase
+  
+  // Add event listeners for page load/unload events
+  window.addEventListener('beforeunload', function() {
+    // Only show loaders for user-initiated navigation
+    if (isUserInitiatedNavigation) {
+      showLoaders();
+    }
+  });
+  
+  window.addEventListener('pageshow', function(event) {
+    // Hide loaders when page is shown
+    hideLoaders();
+    
+    // For back-forward cache
+    if (event.persisted) {
+      hideLoaders();
+    }
+    
+    // Hide the initial preloader if it exists
+    const initialPreloader = document.getElementById('preloader');
+    if (initialPreloader) {
+      initialPreloader.style.display = 'none';
+    }
+  });
   
   // For single page applications that use History API
   const originalPushState = history.pushState;
   history.pushState = function() {
-    showLoaders();
+    // Only show loaders for user-initiated navigation
+    if (isUserInitiatedNavigation) {
+      showLoaders();
+    }
+    
     const result = originalPushState.apply(this, arguments);
     
     // Hide loaders after a short delay to allow the new page content to load
@@ -672,98 +534,121 @@ function initPageLoaders() {
     return result;
   };
   
-  // Handle popstate events (back/forward navigation)
-  eventListeners.popstate = function(event) {
-    // Show loaders
+  window.addEventListener('popstate', function() {
+    // Mark as user-initiated navigation
+    isUserInitiatedNavigation = true;
+    
     showLoaders();
     
-    // Get the current URL
-    const currentUrl = window.location.href;
-    
-    // Handle navigation with our custom loader
-    handleLinkNavigation(currentUrl);
-  };
-  window.addEventListener('popstate', eventListeners.popstate);
+    // Hide loaders after a short delay to allow the new page content to load
+    setTimeout(() => {
+      hideLoaders();
+      
+      // Reset the flag
+      isUserInitiatedNavigation = false;
+    }, 500);
+  });
   
   // For Ajax requests with fetch API
   const originalFetch = window.fetch;
   window.fetch = function() {
     const request = arguments[0];
     const options = arguments[1] || {};
-    
-    // Extract URL from request
     const url = typeof request === 'string' ? request : request.url;
     
     // Only show loaders for GET requests that might be navigation
-    // and don't have our custom navigation header (to avoid recursion)
-    if (
+    // and only if they're user-initiated or explicitly marked
+    const shouldShowLoader = 
+      (isUserInitiatedNavigation || options._showLoader) && 
       (!options.method || options.method === 'GET') && 
-      (!options.headers || !options.headers['X-Page-Navigation']) &&
-      isNavigationRequest(url)
-    ) {
+      isNavigationRequest(url);
+    
+    if (shouldShowLoader) {
+      pendingRequests++;
       showLoaders();
-      
-      // Add a custom property to track this request
-      const originalPromise = originalFetch.apply(this, arguments);
-      
-      // Return a new promise that hides the loader when done
-      return originalPromise.finally(function() {
-        // Small delay to ensure content is rendered before hiding loaders
-        setTimeout(() => {
-          hideLoaders();
-        }, 200);
-      });
     }
     
-    // For non-navigation requests, just pass through
-    return originalFetch.apply(this, arguments);
+    return originalFetch.apply(this, arguments)
+      .then(response => {
+        if (shouldShowLoader) {
+          pendingRequests--;
+          if (pendingRequests <= 0) {
+            setTimeout(() => hideLoaders(), 200);
+          }
+        }
+        return response;
+      })
+      .catch(error => {
+        if (shouldShowLoader) {
+          pendingRequests--;
+          if (pendingRequests <= 0) {
+            setTimeout(() => hideLoaders(), 200);
+          }
+        }
+        throw error;
+      });
   };
   
   // For XMLHttpRequest
   const originalOpen = XMLHttpRequest.prototype.open;
+  const originalSend = XMLHttpRequest.prototype.send;
+  
   XMLHttpRequest.prototype.open = function() {
     const method = arguments[0];
     const url = arguments[1];
     
-    // Only show loaders for GET requests that might be navigation
-    if (method.toLowerCase() === 'get' && isNavigationRequest(url)) {
-      let isNavigationRequest = true;
-      
-      // Add loadstart and loadend event listeners
-      this.addEventListener('loadstart', function() {
-        if (isNavigationRequest) {
-          showLoaders();
-        }
-      });
-      
-      this.addEventListener('loadend', function() {
-        if (isNavigationRequest) {
-          // Small delay to ensure content is rendered before hiding loaders
-          setTimeout(() => {
-            hideLoaders();
-          }, 200);
-        }
-      });
-      
-      // Override setRequestHeader to detect if this is a navigation request
-      const originalSetRequestHeader = this.setRequestHeader;
-      this.setRequestHeader = function(name, value) {
-        // If this is an AJAX request or has our navigation header, don't show loader
-        if (
-          (name.toLowerCase() === 'x-requested-with' && value === 'XMLHttpRequest') ||
-          (name.toLowerCase() === 'x-page-navigation')
-        ) {
-          isNavigationRequest = false;
-        }
-        return originalSetRequestHeader.apply(this, arguments);
-      };
-    }
+    // Store the URL and method for later use
+    this._url = url;
+    this._method = method;
     
     originalOpen.apply(this, arguments);
   };
   
+  XMLHttpRequest.prototype.send = function() {
+    // Only show loaders for GET requests that might be navigation
+    // and only if they're user-initiated
+    const shouldShowLoader = 
+      isUserInitiatedNavigation && 
+      this._method && 
+      this._method.toLowerCase() === 'get' && 
+      isNavigationRequest(this._url);
+    
+    if (shouldShowLoader) {
+      pendingRequests++;
+      showLoaders();
+      
+      // Add event listeners to hide loader when request completes
+      this.addEventListener('load', function() {
+        pendingRequests--;
+        if (pendingRequests <= 0) {
+          setTimeout(() => hideLoaders(), 200);
+        }
+      });
+      
+      this.addEventListener('error', function() {
+        pendingRequests--;
+        if (pendingRequests <= 0) {
+          setTimeout(() => hideLoaders(), 200);
+        }
+      });
+      
+      this.addEventListener('abort', function() {
+        pendingRequests--;
+        if (pendingRequests <= 0) {
+          setTimeout(() => hideLoaders(), 200);
+        }
+      });
+    }
+    
+    originalSend.apply(this, arguments);
+  };
+  
+  // Handle automatic AJAX calls that might happen on page load
+  let initialLoadHandled = false;
+  
   // Hide loaders when page is fully loaded
   window.addEventListener('load', function() {
+    initialLoadHandled = true;
     hideLoaders();
     
     // Hide the initial preloader if it exists
@@ -774,12 +659,38 @@ function initPageLoaders() {
   });
   
   // Add global functions to manually control the loaders
-  window.showPageLoaders = showLoaders;
+  window.showPageLoaders = function() {
+    isUserInitiatedNavigation = true;
+    showLoaders();
+    setTimeout(() => {
+      isUserInitiatedNavigation = false;
+    }, 500);
+  };
+  
   window.hidePageLoaders = hideLoaders;
   window.showDotLoader = showDotLoader;
   window.hideDotLoader = hideDotLoader;
   window.animateProgressBar = animateProgress;
   window.completeProgressBar = completeProgress;
+  window.navigateTo = navigateTo;
+  
+  // Prevent unwanted loader activations after initial page load
+  setTimeout(() => {
+    if (!initialLoadHandled) {
+      initialLoadHandled = true;
+      hideLoaders();
+    }
+  }, 1000);
+  
+  // Force hide loaders if they get stuck
+  setInterval(() => {
+    // If there are no pending requests but the loader is still showing,
+    // it might be stuck, so force hide it
+    if (pendingRequests <= 0 && navigationInProgress) {
+      console.log('Force hiding stuck loaders');
+      hideLoaders();
+    }
+  }, 10000); // Check every 10 seconds
 }
 
 // Run when the DOM is ready

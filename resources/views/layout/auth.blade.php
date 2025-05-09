@@ -74,12 +74,8 @@
     @vite('resources/css/app.css')
     @laravelPWA
 
-    <style>
-        .loader-dot {
-            background-color: #024ef3;
-            /* Change to your brand color */
-        }
-    </style>
+
+
 </head>
 
 
@@ -101,11 +97,11 @@
 
     <!-- All JavaScript Files -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Hide the initial preloader once the page is loaded
-            const initialPreloader = document.getElementById('preloader');
-            initialPreloader.style.display = 'none';
-        });
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     // Hide the initial preloader once the page is loaded
+        //     const initialPreloader = document.getElementById('preloader');
+        //     initialPreloader.style.display = 'none';
+        // });
     </script>
     <script src="{{ url('js/bootstrap.bundle.min.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ url('js/slideToggle.min.js' . env('CACHE_VERSION')) }}"></script>
