@@ -213,6 +213,40 @@ function addLoaderStyles() {
 
 // Function to disable browser's built-in loading indicator
 function disableBrowserLoadingIndicator() {
+   const metaTags = [
+    { name: 'theme-color', content: '#ffffff' },
+    { name: 'mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-capable', content: 'yes' }
+  ];
+  
+  metaTags.forEach(tag => {
+    const meta = document.createElement('meta');
+    meta.name = tag.name;
+    meta.content = tag.content;
+    document.head.appendChild(meta);
+  });
+  
+  // Add class to HTML element
+  document.documentElement.classList.add('custom-loader-active');
+  
+  // Use CSS to hide Chrome's throbber (spinner in tab)
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes disableAnimation {
+      0% { opacity: 0; }
+      100% { opacity: 0; }
+    }
+    
+    /* Target Chrome's throbber in the tab */
+    html.custom-loader-active::-webkit-progress-bar,
+    html.custom-loader-active::-webkit-progress-value,
+    html.custom-loader-active::-webkit-progress {
+      display: none !important;
+      opacity: 0 !important;
+      animation: disableAnimation 0.001s infinite !important;
+    }
+  `;
+  document.head.appendChild(style);
   // Add a meta tag to help disable Chrome's loading indicator
   const meta = document.createElement('meta');
   meta.name = 'theme-color';
@@ -267,6 +301,7 @@ function initPageLoaders() {
   let loaderTimeoutId = null; // Track the timeout ID
   let pendingRequests = 0; // Track number of pending AJAX requests
   let isUserInitiatedNavigation = false; // Flag for user-initiated navigation
+  let isPageReloading = false; // Flag for page reload
   
   // Function to show dot loader
   function showDotLoader() {
@@ -368,8 +403,8 @@ function initPageLoaders() {
   
   // Function to hide both loaders
   function hideLoaders() {
-    // Only hide if there are no pending requests
-    if (pendingRequests <= 0) {
+    // Only hide if there are no pending requests and page is not reloading
+    if (pendingRequests <= 0 && !isPageReloading) {
       hideDotLoader();
       completeProgress();
       pendingRequests = 0; // Reset counter to ensure it doesn't go negative
@@ -414,12 +449,30 @@ function initPageLoaders() {
     }, 50); // Small delay to ensure loader is visible before navigation
   }
   
+  // Function to handle page reload
+  function reloadPage() {
+    isPageReloading = true;
+    showLoaders();
+    
+    // Set a timeout to actually reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 50); // Small delay to ensure loader is visible before reload
+  }
+  
   // Intercept all link clicks with capture phase to ensure it runs before other handlers
   document.addEventListener('click', function(event) {
     // Find closest anchor tag if the clicked element is inside one
     const link = event.target.closest('a');
     
     if (link && link.href) {
+      // Check if it's a reload link (same URL as current page)
+      if (link.href === window.location.href) {
+        event.preventDefault();
+        reloadPage();
+        return;
+      }
+      
       // Skip if it's an external link, has a target attribute, or is a download
       if (
         link.getAttribute('target') === '_blank' ||
@@ -494,25 +547,64 @@ function initPageLoaders() {
   
   // Add event listeners for page load/unload events
   window.addEventListener('beforeunload', function() {
-    // Only show loaders for user-initiated navigation
-    if (isUserInitiatedNavigation) {
-      showLoaders();
+    // Always show loaders on page unload, regardless of how it was triggered
+    isPageReloading = true;
+    showLoaders();
+    
+    // Make sure the initial preloader is visible
+    const initialPreloader = document.getElementById('preloader');
+    if (initialPreloader) {
+      initialPreloader.style.display = 'block';
     }
   });
   
+  // Detect page reload using the performance API
+  if (window.performance && performance.navigation) {
+    if (performance.navigation.type === 1) { // 1 is TYPE_RELOAD
+      isPageReloading = true;
+      showLoaders();
+      
+      // Make sure the initial preloader is visible
+      const initialPreloader = document.getElementById('preloader');
+      if (initialPreloader) {
+        initialPreloader.style.display = 'block';
+      }
+    }
+  }
+  
+  // Alternative reload detection for newer browsers
+  if (window.performance && performance.getEntriesByType) {
+    const navEntries = performance.getEntriesByType('navigation');
+    if (navEntries.length > 0 && navEntries[0].type === 'reload') {
+      isPageReloading = true;
+      showLoaders();
+      
+      // Make sure the initial preloader is visible
+      const initialPreloader = document.getElementById('preloader');
+      if (initialPreloader) {
+        initialPreloader.style.display = 'block';
+      }
+    }
+  }
+  
   window.addEventListener('pageshow', function(event) {
-    // Hide loaders when page is shown
-    hideLoaders();
-    
-    // For back-forward cache
-    if (event.persisted) {
+    // Only hide loaders if not reloading
+    if (!isPageReloading) {
       hideLoaders();
     }
     
-    // Hide the initial preloader if it exists
-    const initialPreloader = document.getElementById('preloader');
-    if (initialPreloader) {
-      initialPreloader.style.display = 'none';
+    // For back-forward cache
+    if (event.persisted) {
+      isPageReloading = false;
+      hideLoaders();
+    }
+    
+    // Don't hide the initial preloader if we're reloading
+    if (!isPageReloading) {
+      const initialPreloader = document.getElementById('preloader');
+      if (initialPreloader) {
+        initialPreloader.style.display = 'none';
+      }
     }
   });
   
@@ -549,6 +641,21 @@ function initPageLoaders() {
     }, 500);
   });
   
+  // Intercept F5 key and browser reload button
+  window.addEventListener('keydown', function(event) {
+    // F5 key or Ctrl+R
+    if (event.key === 'F5' || (event.ctrlKey && event.key === 'r')) {
+      isPageReloading = true;
+      showLoaders();
+      
+      // Make sure the initial preloader is visible
+      const initialPreloader = document.getElementById('preloader');
+      if (initialPreloader) {
+        initialPreloader.style.display = 'block';
+      }
+    }
+  });
+  
   // For Ajax requests with fetch API
   const originalFetch = window.fetch;
   window.fetch = function() {
@@ -572,7 +679,7 @@ function initPageLoaders() {
       .then(response => {
         if (shouldShowLoader) {
           pendingRequests--;
-          if (pendingRequests <= 0) {
+          if (pendingRequests <= 0 && !isPageReloading) {
             setTimeout(() => hideLoaders(), 200);
           }
         }
@@ -581,7 +688,7 @@ function initPageLoaders() {
       .catch(error => {
         if (shouldShowLoader) {
           pendingRequests--;
-          if (pendingRequests <= 0) {
+          if (pendingRequests <= 0 && !isPageReloading) {
             setTimeout(() => hideLoaders(), 200);
           }
         }
@@ -620,21 +727,21 @@ function initPageLoaders() {
       // Add event listeners to hide loader when request completes
       this.addEventListener('load', function() {
         pendingRequests--;
-        if (pendingRequests <= 0) {
+        if (pendingRequests <= 0 && !isPageReloading) {
           setTimeout(() => hideLoaders(), 200);
         }
       });
       
       this.addEventListener('error', function() {
         pendingRequests--;
-        if (pendingRequests <= 0) {
+        if (pendingRequests <= 0 && !isPageReloading) {
           setTimeout(() => hideLoaders(), 200);
         }
       });
       
       this.addEventListener('abort', function() {
         pendingRequests--;
-        if (pendingRequests <= 0) {
+        if (pendingRequests <= 0 && !isPageReloading) {
           setTimeout(() => hideLoaders(), 200);
         }
       });
@@ -649,13 +756,22 @@ function initPageLoaders() {
   // Hide loaders when page is fully loaded
   window.addEventListener('load', function() {
     initialLoadHandled = true;
-    hideLoaders();
     
-    // Hide the initial preloader if it exists
-    const initialPreloader = document.getElementById('preloader');
-    if (initialPreloader) {
-      initialPreloader.style.display = 'none';
+    // Only hide loaders if not reloading
+    if (!isPageReloading) {
+      hideLoaders();
+      
+      // Hide the initial preloader if it exists and we're not reloading
+      const initialPreloader = document.getElementById('preloader');
+      if (initialPreloader) {
+        initialPreloader.style.display = 'none';
+      }
     }
+    
+    // Reset the reload flag after the page has fully loaded
+    setTimeout(() => {
+      isPageReloading = false;
+    }, 1000);
   });
   
   // Add global functions to manually control the loaders
@@ -674,9 +790,12 @@ function initPageLoaders() {
   window.completeProgressBar = completeProgress;
   window.navigateTo = navigateTo;
   
+  // Add a new function to reload the page with loaders
+  window.reloadPageWithLoaders = reloadPage;
+  
   // Prevent unwanted loader activations after initial page load
   setTimeout(() => {
-    if (!initialLoadHandled) {
+    if (!initialLoadHandled && !isPageReloading) {
       initialLoadHandled = true;
       hideLoaders();
     }
@@ -685,8 +804,8 @@ function initPageLoaders() {
   // Force hide loaders if they get stuck
   setInterval(() => {
     // If there are no pending requests but the loader is still showing,
-    // it might be stuck, so force hide it
-    if (pendingRequests <= 0 && navigationInProgress) {
+    // it might be stuck, so force hide it (but not during reload)
+    if (pendingRequests <= 0 && navigationInProgress && !isPageReloading) {
       console.log('Force hiding stuck loaders');
       hideLoaders();
     }
@@ -695,12 +814,7 @@ function initPageLoaders() {
 
 // Run when the DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-  // Hide the initial preloader if it exists
-  const initialPreloader = document.getElementById('preloader');
-  if (initialPreloader) {
-    initialPreloader.style.display = 'none';
-  }
-  
+  // Don't hide the initial preloader immediately - let the page loader logic handle it
   initPageLoaders();
 });
 
