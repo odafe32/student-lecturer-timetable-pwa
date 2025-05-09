@@ -1,29 +1,134 @@
-@extends('layout.auth')
+@extends('layouts.auth')
 
 @section('content')
-    <!-- Hero Block Wrapper -->
-    <div class="hero-block-wrapper bg-primary">
-        <!-- Styles -->
-        <div class="hero-block-styles">
-            <div class="hb-styles1" style="background-image: url('{{ url('img/core-img/dot.png') }}')"></div>
-            <div class="hb-styles2"></div>
-            <div class="hb-styles3"></div>
-        </div>
+    <div class="welcome-wrapper">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-10 col-lg-8">
+                    <div class="welcome-card text-center">
+                        <div class="floating-image-container mb-4">
+                            <img class="floating-image" src="{{ asset('img/bg-img/19.png') }}" alt="Timetable Illustration"
+                                style="max-width: 280px;">
+                        </div>
+                        <h3 class="mb-3 fade-in">Smart Timetables for Students</h3>
+                        <p class="mb-4 slide-up">Access your personalized lecture schedules anytime, anywhere. Fast, easy,
+                            and always up to date.</p>
 
-        <div class="custom-container">
-            <!-- Skip Page -->
-            <div class="skip-page">
-                <a href="">Skip</a>
-            </div>
-
-            <!-- Hero Block Content -->
-            <div class="hero-block-content text-center">
-                <img class="mb-4" src="{{ url('img/bg-img/19.png') }}" alt="Timetable Illustration">
-                <h2 class="display-4 text-white mb-3">Smart Timetables Students</h2>
-                <p class="text-white">Access your personalized lecture schedules anytime, anywhere. Fast, easy, and always
-                    up to date.</p>
-                <a class="btn btn-warning btn-lg w-100" href="">Get Started</a>
+                        <div class="welcome-btn-group">
+                            <a href="{{ route('login') }}" class="btn btn-primary btn-lg w-100 mb-3 pulse-button">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Get RIght In
+                            </a>
+                            <p class="mb-0">Need help? <a href="#" class="text-decoration-underline">Contact
+                                    Support</a></p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <style>
+        .welcome-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+            background-color: var(--primary);
+            background-image: url('{{ url('img/core-img/dot.png') }}');
+            background-repeat: repeat;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-card {
+            background-color: #fff;
+            border-radius: 1rem;
+            padding: 3rem 1.5rem;
+            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Floating animation for the image */
+        .floating-image-container {
+            display: inline-block;
+        }
+
+        .floating-image {
+            animation: float 3s ease-in-out infinite;
+            border-radius: 10px;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-15px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        /* Fade-in animation for the heading */
+        .fade-in {
+            animation: fadeIn 2s ease-in;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Slide-up animation for the paragraph */
+        .slide-up {
+            animation: slideUp 1.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            0% {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Pulse animation for the button */
+        .pulse-button {
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 0 rgba(13, 110, 253, 0.4);
+            transition: all 0.3s;
+        }
+
+        .pulse-button:hover {
+            transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+            }
+        }
+    </style>
 @endsection

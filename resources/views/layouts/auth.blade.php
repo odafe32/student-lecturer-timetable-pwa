@@ -80,15 +80,10 @@
 
 
 <body>
-    <!-- Preloader -->
-    {{-- <div id="preloader">
-        <div class="spinner-grow text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div> --}}
+    <!-- Install Application -->
+    @include('components.install-button')
 
-    <!-- Internet Connection Status -->
-
+    <!-- End Install Application -->
 
 
     @yield('content')
@@ -119,7 +114,5 @@
     <script src="{{ url('js/network-detector.js' . env('CACHE_VERSION')) }}"></script>
 
 </body>
-
-
 
 </html>
