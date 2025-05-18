@@ -1,61 +1,56 @@
-@extends('layouts.auth')
+@extends('layouts.app')
 
 @section('content')
-    <!-- Back Button -->
-    <div class="login-back-button">
-        <a href="{{ route('login') }}">
-            <i class="bi bi-arrow-left-short"></i>
-        </a>
-    </div>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">{{ __('Verify OTP') }}</div>
 
-    <!-- Login Wrapper Area -->
-    <div class="login-wrapper d-flex align-items-center justify-content-center">
-        <div class="custom-container">
-            <div class="text-center">
-                <img class="mx-auto mb-4 d-block" src="img/bg-img/38.png" alt="">
-                <h3>Verify Account </h3>
-                <p class="mb-4">Enter the OTP code sent to <strong>{{ Auth::user()->email }}</strong></p>
+                    <div class="card-body">
+                        @if (session('status'))
+                            <div class="alert alert-success" role="alert">
+                                {{ session('status') }}
+                            </div>
+                        @endif
 
-                @if (session('status'))
-                    <div class="alert alert-success">
-                        {{ session('status') }}
+                        <p>{{ __('We have sent a verification code to your email. Please enter the code below to verify your account.') }}
+                        </p>
+
+                        <form method="POST" action="{{ route('verify.otp') }}">
+                            @csrf
+
+                            <div class="row mb-3">
+                                <label for="otp"
+                                    class="col-md-4 col-form-label text-md-end">{{ __('OTP Code') }}</label>
+
+                                <div class="col-md-6">
+                                    <input id="otp" type="text"
+                                        class="form-control @error('otp') is-invalid @enderror" name="otp" required
+                                        autofocus>
+
+                                    @error('otp')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="row mb-0">
+                                <div class="col-md-8 offset-md-4">
+                                    <button type="submit" class="btn btn-primary">
+                                        {{ __('Verify') }}
+                                    </button>
+
+                                    <a href="{{ route('resend.otp') }}" class="btn btn-link">
+                                        {{ __('Resend OTP') }}
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                @endif
-
-                @if ($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-            </div>
-
-            <!-- OTP Verify Form -->
-            <div class="otp-verify-form mt-4">
-                <form action="{{ route('verify.otp') }}" method="POST">
-                    @csrf
-                    <div class="input-group mb-3 otp-input-group">
-                        <input class="form-control" type="text" name="otp[]" value="" placeholder="-"
-                            maxlength="1" required>
-                        <input class="form-control" type="text" name="otp[]" value="" placeholder="-"
-                            maxlength="1" required>
-                        <input class="form-control" type="text" name="otp[]" value="" placeholder="-"
-                            maxlength="1" required>
-                        <input class="form-control" type="text" name="otp[]" value="" placeholder="-"
-                            maxlength="1" required>
-                    </div>
-                    <button class="btn btn-primary w-100" type="submit">Verify &amp; Proceed</button>
-                </form>
-            </div>
-
-            <!-- Term & Privacy Info -->
-            <div class="login-meta-data text-center">
-                <p class="mt-3 mb-0">Don't received the OTP?
-                    <a href="{{ route('resend.otp') }}" class="otp-sec">Resend OTP</a>
-                </p>
+                </div>
             </div>
         </div>
     </div>

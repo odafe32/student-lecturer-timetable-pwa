@@ -18,8 +18,7 @@
                             <a href="{{ route('login') }}" class="btn btn-primary btn-lg w-100 mb-3 pulse-button">
                                 <i class="bi bi-box-arrow-in-right me-2"></i>Get RIght In
                             </a>
-                            <p class="mb-0">Need help? <a href="#" class="text-decoration-underline">Contact
-                                    Support</a></p>
+
                         </div>
                     </div>
                 </div>

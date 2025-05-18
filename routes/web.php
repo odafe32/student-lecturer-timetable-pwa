@@ -22,14 +22,14 @@ Route::middleware('guest')->group(function () {
     });
 });
 
+// Debug route - only accessible in local environment
+if (app()->environment('local')) {
+    Route::get('/debug-auth', [AuthController::class, 'debugInfo'])->name('debug.auth');
+}
+
 // Auth routes (for authenticated users)
 Route::middleware('auth')->group(function () {
     Route::controller(AuthController::class)->group(function () {
-        // OTP verification routes
-        Route::get('/otp', 'Otp')->name('verify-account');
-        Route::post('/verify-otp', 'verifyOtp')->name('verify.otp');
-        Route::get('/resend-otp', 'resendOtp')->name('resend.otp');
-        
         // Logout route
         Route::post('/logout', 'logout')->name('logout');
         
@@ -39,26 +39,27 @@ Route::middleware('auth')->group(function () {
     });
     
     // Role-specific dashboard routes
-    Route::middleware('verified.otp')->group(function () {
-        // Admin routes
-        Route::middleware('role:admin')->group(function () {
-            Route::get('/admin/dashboard', function () {
-                return view('admin.dashboard');
-            })->name('admin.dashboard');
-        });
-        
-        // Lecturer routes
-        Route::middleware('role:lecturer')->group(function () {
-            Route::get('/lecturer/dashboard', function () {
-                return view('lecturer.dashboard');
-            })->name('lecturer.dashboard');
-        });
-        
-        // Student routes
-        Route::middleware('role:student')->group(function () {
-            Route::get('/student/dashboard', function () {
-                return view('student.dashboard');
-            })->name('student.dashboard');
-        });
-    });
+    // Admin Dashboard
+    Route::get('/admin/dashboard', function () {
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
+        }
+        return view('admin.dashboard');
+    })->name('admin.dashboard');
+    
+    // Lecturer Dashboard
+    Route::get('/lecturer/dashboard', function () {
+        if (Auth::user()->role !== 'lecturer') {
+            abort(403, 'Unauthorized action.');
+        }
+        return view('lecturer.dashboard');
+    })->name('lecturer.dashboard');
+    
+    // Student Dashboard
+    Route::get('/student/dashboard', function () {
+        if (Auth::user()->role !== 'student') {
+            abort(403, 'Unauthorized action.');
+        }
+        return view('student.dashboard');
+    })->name('student.dashboard');
 });

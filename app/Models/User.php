@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable
 {
+    use HasPushSubscriptions;
     use HasFactory, Notifiable;
 
     /**
@@ -20,8 +22,6 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'otp',
-        'otp_expires_at',
         'email_verified_at',
         'first_login',
     ];
@@ -34,7 +34,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'otp',
     ];
 
     /**
@@ -46,7 +45,6 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'otp_expires_at' => 'datetime',
             'password' => 'hashed',
             'first_login' => 'boolean',
         ];
