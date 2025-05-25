@@ -1,0 +1,14 @@
+/* Custom styles for active navigation items */
+.footer-nav ul li.active a {
+    color: #0400e7 !important; /* Primary green color */
+}
+
+.footer-nav ul li.active a i {
+    color: #0400e7 !important;
+}
+
+.footer-nav ul li.active a span {
+    color: #0400e7 !important;
+    font-weight: 600;
+}
+

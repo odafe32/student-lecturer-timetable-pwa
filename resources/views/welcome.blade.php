@@ -3,6 +3,7 @@
 @section('content')
     <div class="welcome-wrapper">
         <div class="container">
+            {{-- @include('components.notification-permission') --}}
             <div class="row justify-content-center">
                 <div class="col-12 col-md-10 col-lg-8">
                     <div class="welcome-card text-center">

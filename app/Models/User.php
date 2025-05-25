@@ -37,40 +37,51 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'first_login' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'first_login' => 'boolean',
+    ];
 
     /**
      * Check if user is an admin
+     *
+     * @return bool
      */
-    public function isAdmin(): bool
+    public function isAdmin()
     {
         return $this->role === 'admin';
     }
 
     /**
      * Check if user is a student
+     *
+     * @return bool
      */
-    public function isStudent(): bool
+    public function isStudent()
     {
         return $this->role === 'student';
     }
 
     /**
      * Check if user is a lecturer
+     *
+     * @return bool
      */
-    public function isLecturer(): bool
+    public function isLecturer()
     {
         return $this->role === 'lecturer';
+    }
+
+    /**
+     * Get the admin profile associated with the user.
+     */
+    public function adminProfile()
+    {
+        return $this->hasOne(Admin::class);
     }
 }

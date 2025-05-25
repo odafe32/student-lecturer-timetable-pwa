@@ -13,17 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordVisibility = document.getElementById('password-visibility');
     
     if (passwordVisibility) {
-        passwordVisibility.addEventListener('click', function() {
-            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordField.setAttribute('type', type);
-            
-            // Toggle visibility icons
-            this.querySelector('.bi-eye').classList.toggle('d-none');
-            this.querySelector('.bi-eye-slash').classList.toggle('d-none');
-        });
-        
         // Initially hide the eye-slash icon
-        passwordVisibility.querySelector('.bi-eye-slash').classList.add('d-none');
+       
+    
     }
     
     // Form validation

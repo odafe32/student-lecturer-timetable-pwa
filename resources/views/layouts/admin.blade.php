@@ -71,6 +71,7 @@
     {{-- link --}}
     <link rel="stylesheet" href="{{ url('style.css' . env('CACHE_VERSION')) }}">
     <link rel="stylesheet" href="{{ asset('css/flash-messages.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/custom-nav.css') }}">
 
     <!-- Pull to refresh styles -->
     <style>
@@ -90,14 +91,75 @@
 
 <body>
     <!-- Install Application -->
+
+    <div class="header-area" id="headerArea">
+        <div class="container">
+            <!-- Header Content -->
+            <div
+                class="header-content header-style-five position-relative d-flex align-items-center justify-content-between">
+                <!-- Logo Wrapper -->
+                <div class="logo-wrapper">
+                    <a href="home.html">
+                        <img src="{{ url('img/core-img/logo.png') }}" alt="">
+                    </a>
+                </div>
+
+
+
+                <!-- Navbar Toggler -->
+
+            </div>
+        </div>
+    </div>
+
     @include('components.install-button')
+
+
 
     <!-- End Install Application -->
 
 
     @yield('content')
+  
 
 
+
+    <div class="footer-nav-area" id="footerNav">
+        <div class="container px-0">
+            <!-- Footer Content -->
+            <div class="footer-nav position-relative">
+                <ul class="h-100 d-flex align-items-center justify-content-between ps-0">
+                    <li class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                        <a href="{{ route('admin.dashboard') }}">
+                            <i class="bi bi-house"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('admin.student') ? 'active' : '' }}">
+                        <a href="{{ route('admin.student') }}">
+                            <i class="bi bi-person"></i>
+                            <span>Student</span>
+                        </a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('admin.lecturer') ? 'active' : '' }}">
+                        <a href="{{ route('admin.lecturer') }}">
+                            <i class="bi bi-person"></i>
+                            <span>Lecturer</span>
+                        </a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('admin.profile') ? 'active' : '' }}">
+                        <a href="{{ route('admin.profile') }}">
+                            <i class="bi bi-gear"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <!-- All JavaScript Files -->
     <script>

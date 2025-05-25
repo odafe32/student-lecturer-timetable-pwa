@@ -3,6 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PushNotificationController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\LecturerController;
+use App\Http\Controllers\StudentController;
+use App\Http\Middleware\CheckRole;
 
 // Guest routes (for unauthenticated users)
 Route::middleware('guest')->group(function () {
@@ -15,9 +20,15 @@ Route::middleware('guest')->group(function () {
         Route::post('/login', 'login');
         
         // Password reset routes
-        Route::get('/forgot', 'ShowForgotPassword')->name('recoverPassword');
-        Route::post('/forgot', 'sendResetLinkEmail')->name('password.email');
-        Route::get('/reset-password/{token}', 'showResetForm')->name('password.reset');
+        Route::get('/forgot-password', 'ShowForgotPassword')->name('recoverPassword');
+        Route::post('/forgot-password', 'sendResetLinkEmail')->name('password.email');
+        
+        // OTP verification routes
+        Route::get('/verify-otp', 'showOtpForm')->name('verify.otp.form');
+        Route::post('/verify-otp', 'verifyOtp')->name('verify.otp');
+        Route::get('/resend-otp', 'resendOtp')->name('resend.otp');
+        
+        Route::get('/reset-password', 'showResetForm')->name('password.reset');
         Route::post('/reset-password', 'resetPassword')->name('password.update');
     });
 });
@@ -34,32 +45,44 @@ Route::middleware('auth')->group(function () {
         Route::post('/logout', 'logout')->name('logout');
         
         // Change password route
-        Route::get('/change-password', 'showChangePasswordForm')->name('password.change.form');
-        Route::post('/change-password', 'changePassword')->name('password.change');
+        Route::get('/change-password', 'showChangePasswordForm')->name('password.change');
+        Route::post('/change-password', 'changePassword')->name('password.change.update');
     });
     
-    // Role-specific dashboard routes
-    // Admin Dashboard
-    Route::get('/admin/dashboard', function () {
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Unauthorized action.');
-        }
-        return view('admin.dashboard');
-    })->name('admin.dashboard');
+    // Push notification API endpoints (accessible to all authenticated users)
+    Route::post('/api/push/subscribe', [PushNotificationController::class, 'subscribe'])->name('push.subscribe');
+    Route::post('/api/push/unsubscribe', [PushNotificationController::class, 'unsubscribe'])->name('push.unsubscribe');
     
-    // Lecturer Dashboard
-    Route::get('/lecturer/dashboard', function () {
-        if (Auth::user()->role !== 'lecturer') {
-            abort(403, 'Unauthorized action.');
-        }
-        return view('lecturer.dashboard');
-    })->name('lecturer.dashboard');
+    // Admin routes
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::middleware(CheckRole::class . ':admin')->group(function () {
+            Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+            Route::get('/lecturer', [AdminController::class, 'Lecturer'])->name('lecturer');
+            Route::get('/profile', [AdminController::class, 'Profile'])->name('profile');
+            Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
+            Route::get('/student', [AdminController::class, 'Student'])->name('student');
+            
+            // Admin Push Notification routes
+            Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');
+            Route::post('/api/push/send', [PushNotificationController::class, 'sendNotification'])->name('push.send');
+        });
+    });
     
-    // Student Dashboard
-    Route::get('/student/dashboard', function () {
-        if (Auth::user()->role !== 'student') {
-            abort(403, 'Unauthorized action.');
-        }
-        return view('student.dashboard');
-    })->name('student.dashboard');
+    // Lecturer routes
+    Route::prefix('lecturer')->name('lecturer.')->group(function () {
+        Route::middleware(CheckRole::class . ':lecturer')->group(function () {
+            Route::get('/dashboard', [LecturerController::class, 'dashboard'])->name('dashboard');
+            
+            // Lecturer Push Notification routes
+            Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');
+            Route::post('/api/push/send', [PushNotificationController::class, 'sendNotification'])->name('push.send');
+        });
+    });
+    
+    // Student routes
+    Route::prefix('student')->name('student.')->group(function () {
+        Route::middleware(CheckRole::class . ':student')->group(function () {
+            Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('dashboard');
+        });
+    });
 });

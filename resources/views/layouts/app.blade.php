@@ -77,6 +77,9 @@
         // Set current year in copyright
         document.getElementById('currentYear').textContent = new Date().getFullYear();
     </script>
+
+    <!-- Push Notifications -->
+    <script src="{{ asset('js/pushNotification.js') }}"></script>
 </body>
 
 </html>

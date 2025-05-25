@@ -56,9 +56,11 @@
                         @enderror
                     </div>
 
+
+
                     <div class="form-group position-relative">
-                        <input class="form-control @error('password') is-invalid @enderror" id="password" name="password"
-                            type="password" placeholder="Enter Password" autocomplete="current-password">
+                        <input class="form-control @error('password') is-invalid @enderror" id="psw-input" name="password"
+                            type="password" placeholder="Enter Password">
                         <div class="position-absolute" id="password-visibility">
                             <i class="bi bi-eye"></i>
                             <i class="bi bi-eye-slash"></i>
