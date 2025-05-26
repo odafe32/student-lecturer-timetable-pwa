@@ -61,6 +61,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/profile', [AdminController::class, 'Profile'])->name('profile');
             Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
             Route::get('/student', [AdminController::class, 'Student'])->name('student');
+            Route::get('/create-student', [AdminController::class, 'CreateStudent'])->name('create-student');
+            Route::get('/edit-student', [AdminController::class, 'EditStudent'])->name('edit-student');
             
             // Admin Push Notification routes
             Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');

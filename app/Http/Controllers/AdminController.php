@@ -147,6 +147,25 @@ class AdminController extends Controller
         ]);
     }
     
+    public function CreateStudent()
+    {
+        return view('admin.create-student', [
+            'title' => 'Create Student - Affan Student Timetable',
+            'description' => 'A smart and user-friendly timetable management tool for students',
+            'ogImage' => url('images/icons/favicon.png'),
+            
+        ]);
+    }
+    public function EditStudent()
+    {
+        return view('admin.edit-student', [
+            'title' => 'Edit Student - Affan Student Timetable',
+            'description' => 'A smart and user-friendly timetable management tool for students',
+            'ogImage' => url('images/icons/favicon.png'),
+            
+        ]);
+    }
+    
 
 
 }

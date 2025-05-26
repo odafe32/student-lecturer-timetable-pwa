@@ -79,6 +79,27 @@
         body {
             overscroll-behavior-y: contain;
         }
+
+        /* Circular Profile Image Styles */
+        .user-profile-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #f1f1f1;
+        }
+
+        /* Style for the dropdown toggle button */
+        .user-profile-dropdown .dropdown-toggle {
+            padding: 0;
+            background: transparent;
+            border: none;
+        }
+
+        .user-profile-dropdown .dropdown-toggle::after {
+            display: none;
+            /* Remove the dropdown arrow if desired */
+        }
     </style>
 
     @vite('resources/css/app.css')
@@ -104,6 +125,38 @@
                     </a>
                 </div>
 
+                <!-- Profile Dropdown -->
+                <div class="user-profile-dropdown">
+                    <div class="dropdown">
+                        <button class="btn dropdown-toggle" type="button" id="profileDropdown"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            @if (Auth::user()->adminProfile && Auth::user()->adminProfile->profile_image)
+                                <img src="{{ asset('storage/admin_images/' . Auth::user()->adminProfile->profile_image) }}?v={{ time() }}"
+                                    alt="Profile" class="user-profile-img">
+                            @else
+                                <img src="{{ url('img/core-img/user.png') }}" alt="Profile"
+                                    class="user-profile-img">
+                            @endif
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                            <li><a class="dropdown-item" href="{{ route('admin.profile') }}"><i
+                                        class="bi bi-person me-2"></i>Profile</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#"
+                                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                </a>
+                                <form id="logout-form" action="{{ route('logout') }}" method="POST"
+                                    class="d-none">
+                                    @csrf
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
 
 
                 <!-- Navbar Toggler -->
@@ -120,7 +173,7 @@
 
 
     @yield('content')
-  
+
 
 
 
