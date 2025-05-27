@@ -57,20 +57,43 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware(CheckRole::class . ':admin')->group(function () {
             Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-            Route::get('/lecturer', [AdminController::class, 'Lecturer'])->name('lecturer');
             Route::get('/profile', [AdminController::class, 'Profile'])->name('profile');
             Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
+            
+            // Lecturer Management Routes
+            Route::get('/lecturer', [AdminController::class, 'Lecturer'])->name('lecturer');
+            Route::get('/lecturers', [AdminController::class, 'Lecturer'])->name('lecturers.index'); // Alternative route name
+            Route::get('/create-lecturer', [AdminController::class, 'createLecturer'])->name('create-lecturer');
+            Route::get('/lecturers/create', [AdminController::class, 'createLecturer'])->name('lecturers.create'); // Alternative route name
+            Route::post('/store-lecturer', [AdminController::class, 'storeLecturer'])->name('store-lecturer');
+            Route::post('/lecturers', [AdminController::class, 'storeLecturer'])->name('lecturers.store'); // Alternative route name
+            Route::get('/view-lecturer/{id}', [AdminController::class, 'viewLecturer'])->name('view-lecturer');
+            Route::get('/lecturers/{id}', [AdminController::class, 'viewLecturer'])->name('lecturers.show'); // Alternative route name
+            Route::get('/edit-lecturer/{id}', [AdminController::class, 'editLecturer'])->name('edit-lecturer');
+            Route::get('/lecturers/{id}/edit', [AdminController::class, 'editLecturer'])->name('lecturers.edit'); // Alternative route name
+            Route::put('/update-lecturer/{id}', [AdminController::class, 'updateLecturer'])->name('update-lecturer');
+            Route::put('/lecturers/{id}', [AdminController::class, 'updateLecturer'])->name('lecturers.update'); // Alternative route name
+            Route::delete('/delete-lecturer/{id}', [AdminController::class, 'deleteLecturer'])->name('delete-lecturer');
+            Route::delete('/lecturers/{id}', [AdminController::class, 'deleteLecturer'])->name('lecturers.destroy'); // Alternative route name
+            
             // Student management routes
             Route::get('/student', [AdminController::class, 'student'])->name('student');
+            Route::get('/students', [AdminController::class, 'student'])->name('students.index'); // Alternative route name
             Route::get('/create-student', [AdminController::class, 'createStudent'])->name('create-student');
+            Route::get('/students/create', [AdminController::class, 'createStudent'])->name('students.create'); // Alternative route name
             Route::post('/store-student', [AdminController::class, 'storeStudent'])->name('store-student');
+            Route::post('/students', [AdminController::class, 'storeStudent'])->name('students.store'); // Alternative route name
             Route::get('/view-student/{id}', [AdminController::class, 'viewStudent'])->name('view-student');
+            Route::get('/students/{id}', [AdminController::class, 'viewStudent'])->name('students.show'); // Alternative route name
             Route::get('/edit-student/{id}', [AdminController::class, 'editStudent'])->name('edit-student');
+            Route::get('/students/{id}/edit', [AdminController::class, 'editStudent'])->name('students.edit'); // Alternative route name
             Route::put('/update-student/{id}', [AdminController::class, 'updateStudent'])->name('update-student');
+            Route::put('/students/{id}', [AdminController::class, 'updateStudent'])->name('students.update'); // Alternative route name
             Route::delete('/delete-student/{id}', [AdminController::class, 'deleteStudent'])->name('delete-student');
+            Route::delete('/students/{id}', [AdminController::class, 'deleteStudent'])->name('students.destroy'); // Alternative route name
             
-            // AJAX route for getting departments by faculty
-            Route::get('/get-departments', [AdminController::class, 'getDepartments'])->name('get-departments');
+            // AJAX Routes
+            Route::get('/api/departments', [AdminController::class, 'getDepartments'])->name('get-departments');
             
             // Admin Push Notification routes
             Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');
@@ -82,6 +105,22 @@ Route::middleware('auth')->group(function () {
     Route::prefix('lecturer')->name('lecturer.')->group(function () {
         Route::middleware(CheckRole::class . ':lecturer')->group(function () {
             Route::get('/dashboard', [LecturerController::class, 'dashboard'])->name('dashboard');
+            Route::get('/profile', [LecturerController::class, 'profile'])->name('profile');
+            Route::put('/profile', [LecturerController::class, 'updateProfile'])->name('profile.update');
+            
+            // Course Management
+            Route::get('/courses', [LecturerController::class, 'courses'])->name('courses');
+            Route::get('/course/{id}', [LecturerController::class, 'viewCourse'])->name('view-course');
+            
+            // Student Management
+            Route::get('/students', [LecturerController::class, 'students'])->name('students');
+            Route::get('/student/{id}', [LecturerController::class, 'viewStudent'])->name('view-student');
+            
+            // Attendance Management
+            Route::get('/attendance', [LecturerController::class, 'attendance'])->name('attendance');
+            Route::get('/take-attendance/{course_id}', [LecturerController::class, 'takeAttendance'])->name('take-attendance');
+            Route::post('/save-attendance/{course_id}', [LecturerController::class, 'saveAttendance'])->name('save-attendance');
+            Route::get('/attendance-report/{course_id}', [LecturerController::class, 'attendanceReport'])->name('attendance-report');
             
             // Lecturer Push Notification routes
             Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');

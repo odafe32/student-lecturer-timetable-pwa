@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use App\Models\User;
 use App\Models\Admin;
 use App\Models\Student;
+use App\Models\Lecturer;
 use App\Models\Faculty;
 use App\Models\Department;
 use Illuminate\Support\Facades\Storage;
@@ -21,11 +22,67 @@ class AdminController extends Controller
 
     public function dashboard()
     {
+        // Get statistics
+        $totalStudents = Student::count();
+        $totalLecturers = Lecturer::count();
+        $totalFaculties = Faculty::count();
+        $totalDepartments = Department::count();
+        
+        // Get new registrations this month
+        $currentMonth = now()->startOfMonth();
+        $newStudentsThisMonth = Student::where('created_at', '>=', $currentMonth)->count();
+        $newLecturersThisMonth = Lecturer::where('created_at', '>=', $currentMonth)->count();
+        
+        // Get recent activities (last 10 activities)
+        $recentActivities = collect();
+        
+        // Recent students
+        $recentStudents = Student::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function ($student) {
+                return [
+                    'type' => 'student',
+                    'icon' => 'fa-user-graduate',
+                    'message' => "New student {$student->user->name} was registered",
+                    'time' => $student->created_at->diffForHumans()
+                ];
+            });
+        
+        // Recent lecturers
+        $recentLecturers = Lecturer::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function ($lecturer) {
+                return [
+                    'type' => 'lecturer',
+                    'icon' => 'fa-chalkboard-teacher',
+                    'message' => "New lecturer {$lecturer->user->name} was added",
+                    'time' => $lecturer->created_at->diffForHumans()
+                ];
+            });
+        
+        // Merge and sort activities
+        $recentActivities = $recentStudents->concat($recentLecturers)
+            ->sortByDesc(function ($activity) {
+                return $activity['time'];
+            })
+            ->take(10)
+            ->values();
+        
         return view('admin.dashboard', [
             'title' => 'Dashboard - Affan Student Timetable',
             'description' => 'A smart and user-friendly timetable management tool for students',
             'ogImage' => url('images/icons/favicon.png'),
-            
+            'totalStudents' => $totalStudents,
+            'totalLecturers' => $totalLecturers,
+            'totalFaculties' => $totalFaculties,
+            'totalDepartments' => $totalDepartments,
+            'newStudentsThisMonth' => $newStudentsThisMonth,
+            'newLecturersThisMonth' => $newLecturersThisMonth,
+            'recentActivities' => $recentActivities
         ]);
     }
     
@@ -133,13 +190,39 @@ class AdminController extends Controller
         return redirect()->route('admin.profile');
     }
     
-    public function lecturer()
+    /**
+     * Display a listing of lecturers with search functionality.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function lecturer(Request $request)
     {
+        $search = $request->input('search');
+        
+        $lecturersQuery = Lecturer::with(['user', 'department.faculty']);
+        
+        // Apply search filter if search term is provided
+        if ($search) {
+            $lecturersQuery->whereHas('user', function($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->orWhere('staff_id', 'like', "%{$search}%")
+            ->orWhere('phone_number', 'like', "%{$search}%")
+            ->orWhereHas('department', function($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%");
+            });
+        }
+        
+        $lecturers = $lecturersQuery->get();
+        
         return view('admin.lecturer', [
-            'title' => 'Lecturer - Affan Student Timetable',
-            'description' => 'A smart and user-friendly timetable management tool for students',
+            'title' => 'Lecturer Management - Affan Student Timetable',
+            'description' => 'Manage lecturers in the system',
             'ogImage' => url('images/icons/favicon.png'),
-            
+            'lecturers' => $lecturers,
+            'search' => $search
         ]);
     }
     
@@ -412,6 +495,236 @@ class AdminController extends Controller
     }
     
     /**
+     * Show the form for creating a new lecturer.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function createLecturer()
+    {
+        $faculties = Faculty::with('departments')->get();
+        
+        return view('admin.create-lecturer', [
+            'title' => 'Create Lecturer - Affan Student Timetable',
+            'description' => 'Add a new lecturer to the system',
+            'ogImage' => url('images/icons/favicon.png'),
+            'faculties' => $faculties
+        ]);
+    }
+
+    /**
+     * Store a newly created lecturer in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function storeLecturer(Request $request)
+    {
+        // Validate the request
+        $validated = $request->validate([
+            'fullName' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'phone_number' => 'required|string|max:20',
+            'address' => 'nullable|string',
+            'faculty' => 'required|string|exists:faculties,id',
+            'department' => 'required|string|exists:departments,id',
+            'staff_id' => 'nullable|string|unique:lecturers,staff_id',
+            'status' => 'required|string|in:active,inactive,on_leave,retired',
+            'profilePicture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Begin transaction
+        DB::beginTransaction();
+
+        try {
+            // Create user
+            $user = User::create([
+                'name' => $validated['fullName'],
+                'email' => $validated['email'],
+                'password' => Hash::make('password'), // Default password
+                'role' => 'lecturer',
+                'first_login' => true, // Force password change on first login
+            ]);
+
+            // Handle profile picture upload
+            $profileImagePath = null;
+            if ($request->hasFile('profilePicture')) {
+                $profileImagePath = $request->file('profilePicture')->store('lecturer_images', 'public');
+            }
+
+            // Generate staff ID if not provided
+            $staffId = $validated['staff_id'] ?? $this->generateStaffId($validated['department']);
+
+            // Create lecturer profile
+            $lecturer = Lecturer::create([
+                'user_id' => $user->id,
+                'department_id' => $validated['department'],
+                'staff_id' => $staffId,
+                'phone_number' => $validated['phone_number'],
+                'address' => $validated['address'],
+                'profile_image' => $profileImagePath,
+                'status' => $validated['status'],
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('admin.lecturer')->with('success', 'Lecturer created successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Delete uploaded file if exists
+            if (isset($profileImagePath) && Storage::disk('public')->exists($profileImagePath)) {
+                Storage::disk('public')->delete($profileImagePath);
+            }
+
+            return back()->withInput()->with('error', 'Failed to create lecturer: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Display the specified lecturer.
+     *
+     * @param  int  $id
+     * @return \Illuminate\View\View
+     */
+    public function viewLecturer($id)
+    {
+        $lecturer = Lecturer::with(['user', 'department.faculty'])->findOrFail($id);
+        
+        return view('admin.view-lecturer', [
+            'title' => 'Lecturer Details - Affan Student Timetable',
+            'description' => 'View lecturer details',
+            'ogImage' => url('images/icons/favicon.png'),
+            'lecturer' => $lecturer
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified lecturer.
+     *
+     * @param  int  $id
+     * @return \Illuminate\View\View
+     */
+    public function editLecturer($id)
+    {
+        $lecturer = Lecturer::with(['user', 'department.faculty'])->findOrFail($id);
+        $faculties = Faculty::with('departments')->get();
+        
+        return view('admin.edit-lecturer', [
+            'title' => 'Edit Lecturer - Affan Student Timetable',
+            'description' => 'Edit lecturer details',
+            'ogImage' => url('images/icons/favicon.png'),
+            'lecturer' => $lecturer,
+            'faculties' => $faculties
+        ]);
+    }
+
+    /**
+     * Update the specified lecturer in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateLecturer(Request $request, $id)
+    {
+        $lecturer = Lecturer::findOrFail($id);
+        
+        // Validate the request
+        $validated = $request->validate([
+            'fullName' => 'required|string|max:255',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($lecturer->user_id),
+            ],
+            'phone_number' => 'required|string|max:20',
+            'address' => 'nullable|string',
+            'faculty' => 'required|string|exists:faculties,id',
+            'department' => 'required|string|exists:departments,id',
+            'staff_id' => [
+                'required',
+                'string',
+                Rule::unique('lecturers', 'staff_id')->ignore($lecturer->id),
+            ],
+            'status' => 'required|string|in:active,inactive,on_leave,retired',
+            'profilePicture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Begin transaction
+        DB::beginTransaction();
+
+        try {
+            // Update user
+            $lecturer->user->update([
+                'name' => $validated['fullName'],
+                'email' => $validated['email'],
+            ]);
+
+            // Handle profile picture upload
+            if ($request->hasFile('profilePicture')) {
+                // Delete old image if exists
+                if ($lecturer->profile_image && Storage::disk('public')->exists($lecturer->profile_image)) {
+                    Storage::disk('public')->delete($lecturer->profile_image);
+                }
+                
+                $profileImagePath = $request->file('profilePicture')->store('lecturer_images', 'public');
+                $lecturer->profile_image = $profileImagePath;
+            }
+
+            // Update lecturer profile
+            $lecturer->update([
+                'department_id' => $validated['department'],
+                'staff_id' => $validated['staff_id'],
+                'phone_number' => $validated['phone_number'],
+                'address' => $validated['address'],
+                'status' => $validated['status'],
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('admin.lecturer')->with('success', 'Lecturer updated successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return back()->withInput()->with('error', 'Failed to update lecturer: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove the specified lecturer from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function deleteLecturer($id)
+    {
+        $lecturer = Lecturer::findOrFail($id);
+        
+        // Begin transaction
+        DB::beginTransaction();
+
+        try {
+            // Delete profile image if exists
+            if ($lecturer->profile_image && Storage::disk('public')->exists($lecturer->profile_image)) {
+                Storage::disk('public')->delete($lecturer->profile_image);
+            }
+            
+            // Delete user (will cascade delete lecturer due to foreign key constraint)
+            $lecturer->user->delete();
+
+            DB::commit();
+
+            return redirect()->route('admin.lecturer')->with('success', 'Lecturer deleted successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return back()->with('error', 'Failed to delete lecturer: ' . $e->getMessage());
+        }
+    }
+    
+    /**
      * Get departments for a faculty (AJAX request).
      */
     public function getDepartments(Request $request)
@@ -420,6 +733,39 @@ class AdminController extends Controller
         $departments = Department::where('faculty_id', $facultyId)->get();
         
         return response()->json($departments);
+    }
+    
+    /**
+     * Generate a staff ID for a new lecturer.
+     *
+     * @param  string  $departmentId
+     * @return string
+     */
+    private function generateStaffId($departmentId)
+    {
+        $department = Department::with('faculty')->findOrFail($departmentId);
+        $facultyCode = $department->faculty->code;
+        $departmentCode = $department->code;
+        $currentYear = date('Y');
+        
+        // Get the highest sequential number for this department
+        $highestStaffId = Lecturer::where('staff_id', 'like', "{$currentYear}/STAFF/{$departmentCode}/%")
+            ->orderByRaw('CAST(SUBSTRING_INDEX(staff_id, "/", -1) AS UNSIGNED) DESC')
+            ->value('staff_id');
+        
+        if ($highestStaffId) {
+            // Extract the sequential number and increment it
+            $parts = explode('/', $highestStaffId);
+            $sequentialNumber = (int)end($parts) + 1;
+        } else {
+            // Start with 1 if no existing lecturers
+            $sequentialNumber = 1;
+        }
+        
+        // Format the sequential number with leading zeros
+        $formattedNumber = str_pad($sequentialNumber, 4, '0', STR_PAD_LEFT);
+        
+        return "{$currentYear}/STAFF/{$departmentCode}/{$formattedNumber}";
     }
 
     /**
