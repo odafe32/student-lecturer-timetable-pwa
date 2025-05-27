@@ -81,7 +81,7 @@
         }
 
         /* Circular Profile Image Styles */
-        .user-profile-img {
+        .user-profile-img4 {
             width: 40px;
             height: 40px;
             border-radius: 50%;
@@ -90,13 +90,13 @@
         }
 
         /* Style for the dropdown toggle button */
-        .user-profile-dropdown .dropdown-toggle {
+        .user-profile-dropdown4 .dropdown-toggle4 {
             padding: 0;
             background: transparent;
             border: none;
         }
 
-        .user-profile-dropdown .dropdown-toggle::after {
+        .user-profile-dropdown4 .dropdown-toggle4::after {
             display: none;
             /* Remove the dropdown arrow if desired */
         }
@@ -126,16 +126,16 @@
                 </div>
 
                 <!-- Profile Dropdown -->
-                <div class="user-profile-dropdown">
+                <div class="user-profile-dropdown4">
                     <div class="dropdown">
-                        <button class="btn dropdown-toggle" type="button" id="profileDropdown"
+                        <button class="btn dropdown-toggle4" type="button" id="profileDropdown"
                             data-bs-toggle="dropdown" aria-expanded="false">
                             @if (Auth::user()->adminProfile && Auth::user()->adminProfile->profile_image)
                                 <img src="{{ asset('storage/admin_images/' . Auth::user()->adminProfile->profile_image) }}?v={{ time() }}"
-                                    alt="Profile" class="user-profile-img">
+                                    alt="Profile" class="user-profile-img4">
                             @else
                                 <img src="{{ url('img/core-img/user.png') }}" alt="Profile"
-                                    class="user-profile-img">
+                                    class="user-profile-img4">
                             @endif
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">

@@ -60,9 +60,17 @@ Route::middleware('auth')->group(function () {
             Route::get('/lecturer', [AdminController::class, 'Lecturer'])->name('lecturer');
             Route::get('/profile', [AdminController::class, 'Profile'])->name('profile');
             Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
-            Route::get('/student', [AdminController::class, 'Student'])->name('student');
-            Route::get('/create-student', [AdminController::class, 'CreateStudent'])->name('create-student');
-            Route::get('/edit-student', [AdminController::class, 'EditStudent'])->name('edit-student');
+            // Student management routes
+            Route::get('/student', [AdminController::class, 'student'])->name('student');
+            Route::get('/create-student', [AdminController::class, 'createStudent'])->name('create-student');
+            Route::post('/store-student', [AdminController::class, 'storeStudent'])->name('store-student');
+            Route::get('/view-student/{id}', [AdminController::class, 'viewStudent'])->name('view-student');
+            Route::get('/edit-student/{id}', [AdminController::class, 'editStudent'])->name('edit-student');
+            Route::put('/update-student/{id}', [AdminController::class, 'updateStudent'])->name('update-student');
+            Route::delete('/delete-student/{id}', [AdminController::class, 'deleteStudent'])->name('delete-student');
+            
+            // AJAX route for getting departments by faculty
+            Route::get('/get-departments', [AdminController::class, 'getDepartments'])->name('get-departments');
             
             // Admin Push Notification routes
             Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');

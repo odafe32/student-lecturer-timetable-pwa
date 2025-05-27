@@ -84,4 +84,12 @@ class User extends Authenticatable
     {
         return $this->hasOne(Admin::class);
     }
+
+    /**
+     * Get the student profile associated with the user.
+     */
+    public function studentProfile()
+    {
+        return $this->hasOne(Student::class);
+    }
 }

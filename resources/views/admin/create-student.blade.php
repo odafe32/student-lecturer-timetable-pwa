@@ -5,8 +5,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url('css/admin-create-student.css?v=' . env('CACHE_VERSION')) }}">
 
-
-
     <div class="create-student-container">
         <!-- Header Section -->
         <div class="header-section">
@@ -14,9 +12,13 @@
             <p>Add a new student to the system</p>
         </div>
 
+        <!-- Flash Messages -->
+        @include('partials.flash-messages')
+
         <!-- Form Section -->
         <div class="form-section">
-            <form id="createStudentForm">
+            <form id="createStudentForm" action="{{ route('admin.store-student') }}" method="POST" enctype="multipart/form-data">
+                @csrf
                 <!-- Personal Information Section -->
                 <div class="section-title">
                     <i class="fas fa-user me-2"></i>Personal Information
@@ -25,18 +27,27 @@
                 <div class="row form-row">
                     <div class="col-md-6">
                         <label for="fullName" class="form-label">Full Name <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="fullName" name="fullName" required>
+                        <input type="text" class="form-control @error('fullName') is-invalid @enderror" id="fullName" name="fullName" value="{{ old('fullName') }}" required>
+                        @error('fullName')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col-md-6">
                         <label for="email" class="form-label">Email Address <span class="required">*</span></label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" required>
+                        @error('email')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="row form-row">
                     <div class="col-md-12">
                         <label for="address" class="form-label">Address</label>
-                        <textarea class="form-control" id="address" name="address" rows="3" placeholder="Enter full address"></textarea>
+                        <textarea class="form-control @error('address') is-invalid @enderror" id="address" name="address" rows="3" placeholder="Enter full address">{{ old('address') }}</textarea>
+                        @error('address')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
@@ -49,13 +60,15 @@
                     <div class="profile-upload" onclick="document.getElementById('profilePicture').click()">
                         <div class="profile-preview" id="profilePreviewContainer">
                             <i class="fas fa-camera"></i>
-                            <img id="profilePreview" alt="Profile Preview">
                         </div>
                         <div class="profile-upload-text">
                             <strong>Click to upload profile picture</strong><br>
                             <small>JPG, PNG or GIF (Max 2MB)</small>
                         </div>
                         <input type="file" id="profilePicture" name="profilePicture" class="file-input" accept="image/*">
+                        @error('profilePicture')
+                            <div class="text-danger mt-2">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
@@ -67,56 +80,67 @@
                 <div class="row form-row">
                     <div class="col-md-6">
                         <label for="faculty" class="form-label">Faculty <span class="required">*</span></label>
-                        <select class="form-select" id="faculty" name="faculty" required onchange="updateDepartments()">
+                        <select class="form-select @error('faculty') is-invalid @enderror" id="faculty" name="faculty" required>
                             <option value="">Select Faculty</option>
-                            <option value="engineering">Faculty of Engineering</option>
-                            <option value="science">Faculty of Science</option>
-                            <option value="arts">Faculty of Arts</option>
-                            <option value="social_sciences">Faculty of Social Sciences</option>
-                            <option value="medicine">Faculty of Medicine</option>
-                            <option value="law">Faculty of Law</option>
-                            <option value="agriculture">Faculty of Agriculture</option>
-                            <option value="education">Faculty of Education</option>
+                            @foreach($faculties as $faculty)
+                                <option value="{{ $faculty->id }}" {{ old('faculty') == $faculty->id ? 'selected' : '' }}>
+                                    {{ $faculty->name }}
+                                </option>
+                            @endforeach
                         </select>
+                        @error('faculty')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col-md-6">
                         <label for="department" class="form-label">Department <span class="required">*</span></label>
-                        <select class="form-select" id="department" name="department" required
-                            onchange="generateMatricNumber()">
+                        <select class="form-select @error('department') is-invalid @enderror" id="department" name="department" required>
                             <option value="">Select Department</option>
+                            <!-- Departments will be populated via JavaScript -->
                         </select>
+                        @error('department')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="row form-row">
                     <div class="col-md-6">
                         <label for="level" class="form-label">Level <span class="required">*</span></label>
-                        <select class="form-select" id="level" name="level" required>
+                        <select class="form-select @error('level') is-invalid @enderror" id="level" name="level" required>
                             <option value="">Select Level</option>
-                            <option value="100">100 Level</option>
-                            <option value="200">200 Level</option>
-                            <option value="300">300 Level</option>
-                            <option value="400">400 Level</option>
-                            < </select>
+                            <option value="100" {{ old('level') == 100 ? 'selected' : '' }}>100 Level</option>
+                            <option value="200" {{ old('level') == 200 ? 'selected' : '' }}>200 Level</option>
+                            <option value="300" {{ old('level') == 300 ? 'selected' : '' }}>300 Level</option>
+                            <option value="400" {{ old('level') == 400 ? 'selected' : '' }}>400 Level</option>
+                        </select>
+                        @error('level')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col-md-6">
                         <label for="status" class="form-label">Status <span class="required">*</span></label>
-                        <select class="form-select" id="status" name="status" required>
+                        <select class="form-select @error('status') is-invalid @enderror" id="status" name="status" required>
                             <option value="">Select Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="suspended">Suspended</option>
-                            <option value="graduated">Graduated</option>
+                            <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                            <option value="suspended" {{ old('status') == 'suspended' ? 'selected' : '' }}>Suspended</option>
+                            <option value="graduated" {{ old('status') == 'graduated' ? 'selected' : '' }}>Graduated</option>
                         </select>
+                        @error('status')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="row form-row">
                     <div class="col-md-6">
-                        <label for="matricNumber" class="form-label">Matric Number <span
-                                class="required">*</span></label>
-                        <input type="text" class="form-control" id="matricNumber" name="matricNumber" readonly>
-                        <div class="matric-preview" id="matricPreview">Auto-generated based on department and year</div>
+                        <label for="matricNumber" class="form-label">Matric Number <small class="text-muted">(Optional - will be auto-generated if left empty)</small></label>
+                        <input type="text" class="form-control @error('matricNumber') is-invalid @enderror" id="matricNumber" name="matricNumber" value="{{ old('matricNumber') }}">
+                        @error('matricNumber')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <div class="matric-preview" id="matricPreview">Format example: 2023/SCI/CS/0001</div>
                     </div>
                 </div>
 
@@ -137,226 +161,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Department mappings for each faculty
-        const departmentMappings = {
-            engineering: [{
-                    value: 'computer_engineering',
-                    text: 'Computer Engineering',
-                    code: 'CPE'
-                },
-                {
-                    value: 'electrical_engineering',
-                    text: 'Electrical Engineering',
-                    code: 'EEE'
-                },
-                {
-                    value: 'mechanical_engineering',
-                    text: 'Mechanical Engineering',
-                    code: 'MEE'
-                },
-                {
-                    value: 'civil_engineering',
-                    text: 'Civil Engineering',
-                    code: 'CVE'
-                },
-                {
-                    value: 'chemical_engineering',
-                    text: 'Chemical Engineering',
-                    code: 'CHE'
-                }
-            ],
-            science: [{
-                    value: 'computer_science',
-                    text: 'Computer Science',
-                    code: 'CS'
-                },
-                {
-                    value: 'mathematics',
-                    text: 'Mathematics',
-                    code: 'MAT'
-                },
-                {
-                    value: 'physics',
-                    text: 'Physics',
-                    code: 'PHY'
-                },
-                {
-                    value: 'chemistry',
-                    text: 'Chemistry',
-                    code: 'CHM'
-                },
-                {
-                    value: 'biology',
-                    text: 'Biology',
-                    code: 'BIO'
-                },
-                {
-                    value: 'statistics',
-                    text: 'Statistics',
-                    code: 'STA'
-                }
-            ],
-            arts: [{
-                    value: 'english',
-                    text: 'English Language',
-                    code: 'ENG'
-                },
-                {
-                    value: 'history',
-                    text: 'History',
-                    code: 'HIS'
-                },
-                {
-                    value: 'philosophy',
-                    text: 'Philosophy',
-                    code: 'PHI'
-                },
-                {
-                    value: 'fine_arts',
-                    text: 'Fine Arts',
-                    code: 'ART'
-                },
-                {
-                    value: 'music',
-                    text: 'Music',
-                    code: 'MUS'
-                }
-            ],
-            social_sciences: [{
-                    value: 'economics',
-                    text: 'Economics',
-                    code: 'ECO'
-                },
-                {
-                    value: 'political_science',
-                    text: 'Political Science',
-                    code: 'POL'
-                },
-                {
-                    value: 'sociology',
-                    text: 'Sociology',
-                    code: 'SOC'
-                },
-                {
-                    value: 'psychology',
-                    text: 'Psychology',
-                    code: 'PSY'
-                },
-                {
-                    value: 'geography',
-                    text: 'Geography',
-                    code: 'GEO'
-                }
-            ],
-            medicine: [{
-                    value: 'medicine_surgery',
-                    text: 'Medicine & Surgery',
-                    code: 'MED'
-                },
-                {
-                    value: 'nursing',
-                    text: 'Nursing',
-                    code: 'NUR'
-                },
-                {
-                    value: 'pharmacy',
-                    text: 'Pharmacy',
-                    code: 'PHM'
-                },
-                {
-                    value: 'dentistry',
-                    text: 'Dentistry',
-                    code: 'DEN'
-                }
-            ],
-            law: [{
-                    value: 'common_law',
-                    text: 'Common Law',
-                    code: 'LAW'
-                },
-                {
-                    value: 'islamic_law',
-                    text: 'Islamic Law',
-                    code: 'ISL'
-                }
-            ],
-            agriculture: [{
-                    value: 'crop_production',
-                    text: 'Crop Production',
-                    code: 'CRP'
-                },
-                {
-                    value: 'animal_science',
-                    text: 'Animal Science',
-                    code: 'ANS'
-                },
-                {
-                    value: 'soil_science',
-                    text: 'Soil Science',
-                    code: 'SOS'
-                },
-                {
-                    value: 'agricultural_economics',
-                    text: 'Agricultural Economics',
-                    code: 'AGE'
-                }
-            ],
-            education: [{
-                    value: 'educational_admin',
-                    text: 'Educational Administration',
-                    code: 'EDA'
-                },
-                {
-                    value: 'curriculum_instruction',
-                    text: 'Curriculum & Instruction',
-                    code: 'CIN'
-                },
-                {
-                    value: 'guidance_counseling',
-                    text: 'Guidance & Counseling',
-                    code: 'GCO'
-                }
-            ]
-        };
-
-        // Update departments based on selected faculty
-        function updateDepartments() {
-            const facultySelect = document.getElementById('faculty');
-            const departmentSelect = document.getElementById('department');
-            const selectedFaculty = facultySelect.value;
-
-            // Clear existing options
-            departmentSelect.innerHTML = '<option value="">Select Department</option>';
-
-            if (selectedFaculty && departmentMappings[selectedFaculty]) {
-                departmentMappings[selectedFaculty].forEach(dept => {
-                    const option = document.createElement('option');
-                    option.value = dept.value;
-                    option.textContent = dept.text;
-                    option.dataset.code = dept.code;
-                    departmentSelect.appendChild(option);
-                });
-            }
-
-            // Clear matric number when faculty changes
-            document.getElementById('matricNumber').value = '';
-        }
-
-        // Generate matric number based on department
-        function generateMatricNumber() {
-            const departmentSelect = document.getElementById('department');
-            const matricNumberInput = document.getElementById('matricNumber');
-            const selectedOption = departmentSelect.options[departmentSelect.selectedIndex];
-
-            if (selectedOption && selectedOption.dataset.code) {
-                const deptCode = selectedOption.dataset.code;
-                const currentYear = new Date().getFullYear();
-                const randomNum = Math.floor(Math.random() * 900) + 100; // 3-digit random number
-                const matricNumber = `${deptCode}/${currentYear}/${randomNum}`;
-                matricNumberInput.value = matricNumber;
-            }
-        }
-
         // Handle profile picture upload
         document.getElementById('profilePicture').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -368,11 +172,7 @@
 
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const preview = document.getElementById('profilePreview');
                     const container = document.getElementById('profilePreviewContainer');
-
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
                     container.innerHTML = '<img id="profilePreview" src="' + e.target.result +
                         '" alt="Profile Preview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">';
                 };
@@ -380,54 +180,60 @@
             }
         });
 
-        // Handle form submission
-        document.getElementById('createStudentForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // Get form data
-            const formData = new FormData(this);
-            const studentData = Object.fromEntries(formData.entries());
-
-            // Basic validation
-            const requiredFields = ['fullName', 'email', 'faculty', 'department', 'level', 'status'];
-            const missingFields = requiredFields.filter(field => !studentData[field]);
-
-            if (missingFields.length > 0) {
-                alert('Please fill in all required fields: ' + missingFields.join(', '));
-                return;
+        // Load departments based on selected faculty
+        document.getElementById('faculty').addEventListener('change', function() {
+            const facultyId = this.value;
+            const departmentSelect = document.getElementById('department');
+            
+            // Clear existing options
+            departmentSelect.innerHTML = '<option value="">Select Department</option>';
+            
+            if (facultyId) {
+                // Fetch departments via AJAX
+                fetch(`{{ route('admin.get-departments') }}?faculty_id=${facultyId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(dept => {
+                            const option = document.createElement('option');
+                            option.value = dept.id;
+                            option.textContent = dept.name;
+                            departmentSelect.appendChild(option);
+                        });
+                        
+                        // If there was a previously selected department, try to reselect it
+                        const oldDepartment = "{{ old('department') }}";
+                        if (oldDepartment) {
+                            departmentSelect.value = oldDepartment;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching departments:', error);
+                    });
             }
+        });
 
-            // Email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(studentData.email)) {
-                alert('Please enter a valid email address');
-                return;
+        // Trigger faculty change event if there's a selected faculty (for form validation errors)
+        document.addEventListener('DOMContentLoaded', function() {
+            const facultySelect = document.getElementById('faculty');
+            if (facultySelect.value) {
+                facultySelect.dispatchEvent(new Event('change'));
             }
-
-            // Here you would typically send the data to your server
-            console.log('Student Data:', studentData);
-
-            // Show success message
-            alert('Student created successfully!');
-
-            // Optionally redirect or reset form
-            // window.location.href = '/students';
+            
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
         });
 
         // Cancel form
         function cancelForm() {
             if (confirm('Are you sure you want to cancel? All entered data will be lost.')) {
-                // window.history.back();
-                document.getElementById('createStudentForm').reset();
-                document.getElementById('department').innerHTML = '<option value="">Select Department</option>';
-                document.getElementById('matricNumber').value = '';
-                document.getElementById('profilePreviewContainer').innerHTML = '<i class="fas fa-camera"></i>';
+                window.location.href = "{{ route('admin.student') }}";
             }
         }
-
-        // Initialize form
-        document.addEventListener('DOMContentLoaded', function() {
-            // Any initialization code can go here
-        });
     </script>
 @endsection

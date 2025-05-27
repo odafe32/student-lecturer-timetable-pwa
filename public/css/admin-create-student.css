@@ -115,12 +115,18 @@ body {
     color: #64748b;
     font-size: 0.9rem;
 }
+a{
+    text-decoration: none;
+}
 
 .btn-submit {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     border: none;
     border-radius: 12px;
-    padding: 15px 40px;
+     
+    padding-left: 40px;
+    padding-right: 40px;
+    padding-bottom: 20px;
     font-weight: 600;
     box-shadow: 0 4px 15px rgba(16, 13, 209, 0.3);
     transition: all 0.3s ease;
@@ -136,7 +142,10 @@ body {
     background: #f1f5f9;
     border: 2px solid #e2e8f0;
     border-radius: 12px;
-    padding: 15px 40px;
+    
+    padding-left: 40px;
+    padding-right: 40px;
+    padding-bottom: 20px;
     font-weight: 600;
     color: #64748b;
     transition: all 0.3s ease;
