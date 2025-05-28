@@ -7,6 +7,7 @@ use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\LecturerController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\TimetableController;
 use App\Http\Middleware\CheckRole;
 
 // Guest routes (for unauthenticated users)
@@ -105,23 +106,30 @@ Route::middleware('auth')->group(function () {
     Route::prefix('lecturer')->name('lecturer.')->group(function () {
         Route::middleware(CheckRole::class . ':lecturer')->group(function () {
             Route::get('/dashboard', [LecturerController::class, 'dashboard'])->name('dashboard');
-            Route::get('/profile', [LecturerController::class, 'profile'])->name('profile');
+            Route::get('/messages', [LecturerController::class, 'messages'])->name('messages');
+            Route::get('/profile', [LecturerController::class, 'Profile'])->name('profile');
             Route::put('/profile', [LecturerController::class, 'updateProfile'])->name('profile.update');
+            Route::post('/profile/image', [LecturerController::class, 'updateProfileImage'])->name('profile.image');
+            Route::put('/profile/password', [LecturerController::class, 'updatePassword'])->name('password.update');
+             // Timetable main views
+
+            Route::get('/time-table', [TimetableController::class, 'index'])->name('time-table');
+            Route::get('/timetable', [TimetableController::class, 'index'])->name('timetable'); // Added alias
+            Route::get('/time-table/create', [TimetableController::class, 'create'])->name('timetable.create');
+            Route::post('/time-table', [TimetableController::class, 'store'])->name('timetable.store');
+            Route::get('/time-table/{timetable}/edit', [TimetableController::class, 'edit'])->name('timetable.edit');
+            Route::put('/time-table/{timetable}', [TimetableController::class, 'update'])->name('timetable.update');
+            Route::delete('/time-table/{timetable}', [TimetableController::class, 'destroy'])->name('timetable.destroy');
+            Route::get('/time-table/export-pdf', [TimetableController::class, 'exportPdf'])->name('timetable.export-pdf');
             
-            // Course Management
-            Route::get('/courses', [LecturerController::class, 'courses'])->name('courses');
-            Route::get('/course/{id}', [LecturerController::class, 'viewCourse'])->name('view-course');
-            
-            // Student Management
-            Route::get('/students', [LecturerController::class, 'students'])->name('students');
-            Route::get('/student/{id}', [LecturerController::class, 'viewStudent'])->name('view-student');
-            
-            // Attendance Management
-            Route::get('/attendance', [LecturerController::class, 'attendance'])->name('attendance');
-            Route::get('/take-attendance/{course_id}', [LecturerController::class, 'takeAttendance'])->name('take-attendance');
-            Route::post('/save-attendance/{course_id}', [LecturerController::class, 'saveAttendance'])->name('save-attendance');
-            Route::get('/attendance-report/{course_id}', [LecturerController::class, 'attendanceReport'])->name('attendance-report');
-            
+            // AJAX endpoints - these must match exactly with the JavaScript fetch URLs
+            // Debug: Ensure the route is properly defined with a name for clarity
+            Route::get('/time-table/departments/{faculty_id}', [TimetableController::class, 'getDepartmentsByFaculty'])
+                ->name('timetable.departments');
+            Route::get('/time-table/courses/{department_id}', [TimetableController::class, 'getCoursesByDepartment']);
+            Route::post('/time-table/check-conflict', [TimetableController::class, 'checkConflict']);
+
+
             // Lecturer Push Notification routes
             Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');
             Route::post('/api/push/send', [PushNotificationController::class, 'sendNotification'])->name('push.send');

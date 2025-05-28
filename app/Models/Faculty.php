@@ -33,6 +33,7 @@ class Faculty extends Model
         'name',
         'code',
         'description',
+        'status',
     ];
 
     /**
@@ -49,5 +50,16 @@ class Faculty extends Model
     public function students()
     {
         return $this->hasManyThrough(Student::class, Department::class);
+    }
+
+    /**
+     * Scope a query to only include active faculties.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
     }
 }

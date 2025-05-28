@@ -34,6 +34,7 @@ class Department extends Model
         'code',
         'faculty_id',
         'description',
+        'status',
     ];
 
     /**
@@ -50,5 +51,32 @@ class Department extends Model
     public function students()
     {
         return $this->hasMany(Student::class);
+    }
+
+    /**
+     * Get the lecturers for the department.
+     */
+    public function lecturers()
+    {
+        return $this->hasMany(Lecturer::class);
+    }
+
+    /**
+     * Get the courses for the department.
+     */
+    public function courses()
+    {
+        return $this->hasMany(Course::class);
+    }
+
+    /**
+     * Scope a query to only include active departments.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
     }
 }

@@ -71,12 +71,34 @@
     {{-- link --}}
     <link rel="stylesheet" href="{{ url('style.css' . env('CACHE_VERSION')) }}">
     <link rel="stylesheet" href="{{ asset('css/flash-messages.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/custom-nav.css') }}">
 
     <!-- Pull to refresh styles -->
     <style>
         html,
         body {
             overscroll-behavior-y: contain;
+        }
+
+        /* Circular Profile Image Styles */
+        .user-profile-img4 {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #f1f1f1;
+        }
+
+        /* Style for the dropdown toggle button */
+        .user-profile-dropdown4 .dropdown-toggle4 {
+            padding: 0;
+            background: transparent;
+            border: none;
+        }
+
+        .user-profile-dropdown4 .dropdown-toggle4::after {
+            display: none;
+            /* Remove the dropdown arrow if desired */
         }
     </style>
 
@@ -90,7 +112,62 @@
 
 <body>
     <!-- Install Application -->
+
+    <div class="header-area" id="headerArea">
+        <div class="container">
+            <!-- Header Content -->
+            <div
+                class="header-content header-style-five position-relative d-flex align-items-center justify-content-between">
+                <!-- Logo Wrapper -->
+                <div class="logo-wrapper">
+                    <a href="home.html">
+                        <img src="{{ url('img/core-img/logo.png') }}" alt="">
+                    </a>
+                </div>
+
+                <!-- Profile Dropdown -->
+                <!-- Profile Dropdown -->
+                <div class="user-profile-dropdown4">
+                    <div class="dropdown">
+                        <button class="btn dropdown-toggle4" type="button" id="profileDropdown"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            @if (Auth::user()->lecturerProfile && Auth::user()->lecturerProfile->profile_image)
+                                <img src="{{ Storage::url(Auth::user()->lecturerProfile->profile_image) }}?v={{ time() }}"
+                                    alt="Profile" class="user-profile-img4">
+                            @else
+                                <img src="{{ url('img/core-img/user.png') }}" alt="Profile"
+                                    class="user-profile-img4">
+                            @endif
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                            <li><a class="dropdown-item" href="{{ route('lecturer.profile') }}"><i
+                                        class="bi bi-person me-2"></i>Profile</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#"
+                                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                </a>
+                                <form id="logout-form" action="{{ route('logout') }}" method="POST"
+                                    class="d-none">
+                                    @csrf
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Navbar Toggler -->
+
+            </div>
+        </div>
+    </div>
+
     @include('components.install-button')
+
+
 
     <!-- End Install Application -->
 
@@ -98,6 +175,44 @@
     @yield('content')
 
 
+
+
+    <div class="footer-nav-area" id="footerNav">
+        <div class="container px-0">
+            <!-- Footer Content -->
+            <div class="footer-nav position-relative">
+                <ul class="h-100 d-flex align-items-center justify-content-between ps-0">
+                    <li class="{{ request()->routeIs('lecturer.dashboard') ? 'active' : '' }}">
+                        <a href="{{ route('lecturer.dashboard') }}">
+                            <i class="bi bi-house"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('lecturer.time-table') ? 'active' : '' }}">
+                        <a href="{{ route('lecturer.time-table') }}">
+                            <i class="bi bi-calendar3"></i>
+                            <span>Time Table</span>
+                        </a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('lecturer.messages') ? 'active' : '' }}">
+                        <a href="{{ route('lecturer.messages') }}">
+                            <i class="bi bi-chat-dots"></i>
+                            <span>Messages</span>
+                        </a>
+                    </li>
+
+                    <li class="{{ request()->routeIs('lecturer.profile') ? 'active' : '' }}">
+                        <a href="{{ route('lecturer.profile') }}">
+                            <i class="bi bi-person-circle"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <!-- All JavaScript Files -->
     <script>

@@ -233,7 +233,7 @@
     <script src="{{ url('js/index.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ url('js/imagesloaded.pkgd.min.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ url('js/isotope.pkgd.min.js' . env('CACHE_VERSION')) }}"></script>
-    <script src="{{ url('js/dark-rtl.js' . env('CACHE_VERSION')) }}"></script>
+    {{-- <script src="{{ url('js/dark-rtl.js' . env('CACHE_VERSION')) }}"></script> --}}
     <script src="{{ url('js/active.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ url('js/network-detector.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ asset('js/flash-messages.js') }}"></script>
