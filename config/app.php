@@ -123,4 +123,10 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // Add these to your config/app.php file
+
+'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
+'vapid_private_key' => env('VAPID_PRIVATE_KEY'),
+'vapid_subject' => env('VAPID_SUBJECT'),
+
 ];

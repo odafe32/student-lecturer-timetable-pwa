@@ -70,6 +70,15 @@
 
     {{-- link --}}
     <link rel="stylesheet" href="{{ url('style.css' . env('CACHE_VERSION')) }}">
+    <link rel="stylesheet" href="{{ asset('css/flash-messages.css') }}">
+
+    <!-- Pull to refresh styles -->
+    <style>
+        html,
+        body {
+            overscroll-behavior-y: contain;
+        }
+    </style>
 
     @vite('resources/css/app.css')
     @laravelPWA
@@ -109,10 +118,15 @@
     <script src="{{ url('js/index.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ url('js/imagesloaded.pkgd.min.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ url('js/isotope.pkgd.min.js' . env('CACHE_VERSION')) }}"></script>
-    <script src="{{ url('js/dark-rtl.js' . env('CACHE_VERSION')) }}"></script>
+    {{-- <script src="{{ url('js/dark-rtl.js' . env('CACHE_VERSION')) }}"></script> --}}
     <script src="{{ url('js/active.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ url('js/network-detector.js' . env('CACHE_VERSION')) }}"></script>
+    <script src="{{ asset('js/flash-messages.js') }}"></script>
+    <!-- Simple Pull to refresh script -->
+    <script src="{{ url('js/simple-pull-refresh.js' . env('CACHE_VERSION')) }}"></script>
 
+    <!-- Push Notifications -->
+    <script src="{{ asset('js/pushNotification.js') }}"></script>
 </body>
 
 </html>

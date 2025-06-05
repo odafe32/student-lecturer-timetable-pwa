@@ -31,11 +31,25 @@ class UserSeeder extends Seeder
             'first_login' => true,
         ]);
 
-        // Create Students
-        for ($i = 1; $i <= 5; $i++) {
+        // Create Students (10 students with real names)
+        $studentNames = [
+            'John Doe',
+            'Jane Smith',
+            'Michael Johnson',
+            'Emily Williams',
+            'David Brown',
+            'Sarah Miller',
+            'Robert Wilson',
+            'Jennifer Taylor',
+            'Thomas Anderson',
+            'Lisa Jackson'
+        ];
+
+        foreach ($studentNames as $index => $name) {
+            $emailPrefix = strtolower(str_replace(' ', '.', $name));
             User::create([
-                'name' => "Student $i",
-                'email' => "student$i@example.com",
+                'name' => $name,
+                'email' => $emailPrefix . '@example.com',
                 'password' => Hash::make('password'),
                 'role' => 'student',
                 'email_verified_at' => now(),

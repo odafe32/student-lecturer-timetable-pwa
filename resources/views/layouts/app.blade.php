@@ -45,6 +45,14 @@
 
     <!-- Content Wrapper -->
     <div class="page-content-wrapper">
+        <div class="logout-wrapper">
+            <form action="{{ route('logout') }}" method="POST">
+                @csrf
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-box-arrow-right me-1"></i> Logout
+                </button>
+            </form>
+        </div>
         @yield('content')
     </div>
 
@@ -69,6 +77,9 @@
         // Set current year in copyright
         document.getElementById('currentYear').textContent = new Date().getFullYear();
     </script>
+
+    <!-- Push Notifications -->
+    <script src="{{ asset('js/pushNotification.js') }}"></script>
 </body>
 
 </html>
