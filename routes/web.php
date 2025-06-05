@@ -15,20 +15,16 @@ Route::middleware('guest')->group(function () {
     Route::controller(AuthController::class)->group(function () {
         // Welcome page
         Route::get('/', 'Welcome')->name('welcome');
-        
         // Login routes
         Route::get('/login', 'showLogin')->name('login');
         Route::post('/login', 'login');
-        
         // Password reset routes
         Route::get('/forgot-password', 'ShowForgotPassword')->name('recoverPassword');
         Route::post('/forgot-password', 'sendResetLinkEmail')->name('password.email');
-        
         // OTP verification routes
         Route::get('/verify-otp', 'showOtpForm')->name('verify.otp.form');
         Route::post('/verify-otp', 'verifyOtp')->name('verify.otp');
         Route::get('/resend-otp', 'resendOtp')->name('resend.otp');
-        
         Route::get('/reset-password', 'showResetForm')->name('password.reset');
         Route::post('/reset-password', 'resetPassword')->name('password.update');
     });
@@ -44,23 +40,22 @@ Route::middleware('auth')->group(function () {
     Route::controller(AuthController::class)->group(function () {
         // Logout route
         Route::post('/logout', 'logout')->name('logout');
-        
         // Change password route
         Route::get('/change-password', 'showChangePasswordForm')->name('password.change');
         Route::post('/change-password', 'changePassword')->name('password.change.update');
     });
-    
+
     // Push notification API endpoints (accessible to all authenticated users)
     Route::post('/api/push/subscribe', [PushNotificationController::class, 'subscribe'])->name('push.subscribe');
     Route::post('/api/push/unsubscribe', [PushNotificationController::class, 'unsubscribe'])->name('push.unsubscribe');
-    
+
     // Admin routes
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware(CheckRole::class . ':admin')->group(function () {
             Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
             Route::get('/profile', [AdminController::class, 'Profile'])->name('profile');
             Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
-            
+
             // Lecturer Management Routes
             Route::get('/lecturer', [AdminController::class, 'Lecturer'])->name('lecturer');
             Route::get('/lecturers', [AdminController::class, 'Lecturer'])->name('lecturers.index'); // Alternative route name
@@ -76,7 +71,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/lecturers/{id}', [AdminController::class, 'updateLecturer'])->name('lecturers.update'); // Alternative route name
             Route::delete('/delete-lecturer/{id}', [AdminController::class, 'deleteLecturer'])->name('delete-lecturer');
             Route::delete('/lecturers/{id}', [AdminController::class, 'deleteLecturer'])->name('lecturers.destroy'); // Alternative route name
-            
+
             // Student management routes
             Route::get('/student', [AdminController::class, 'student'])->name('student');
             Route::get('/students', [AdminController::class, 'student'])->name('students.index'); // Alternative route name
@@ -92,27 +87,52 @@ Route::middleware('auth')->group(function () {
             Route::put('/students/{id}', [AdminController::class, 'updateStudent'])->name('students.update'); // Alternative route name
             Route::delete('/delete-student/{id}', [AdminController::class, 'deleteStudent'])->name('delete-student');
             Route::delete('/students/{id}', [AdminController::class, 'deleteStudent'])->name('students.destroy'); // Alternative route name
-            
+
             // AJAX Routes
             Route::get('/api/departments', [AdminController::class, 'getDepartments'])->name('get-departments');
-            
+
             // Admin Push Notification routes
             Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');
             Route::post('/api/push/send', [PushNotificationController::class, 'sendNotification'])->name('push.send');
         });
     });
-    
+
     // Lecturer routes
     Route::prefix('lecturer')->name('lecturer.')->group(function () {
         Route::middleware(CheckRole::class . ':lecturer')->group(function () {
+            // Dashboard routes
             Route::get('/dashboard', [LecturerController::class, 'dashboard'])->name('dashboard');
+            Route::get('/dashboard/stats', [LecturerController::class, 'dashboardStats']);
+            
+            // Timetable routes
+            Route::get('/timetable/sessions', [TimetableController::class, 'getSessionDetails']);
+            Route::get('/timetable/upcoming', [TimetableController::class, 'getUpcomingClasses']);
+            Route::post('/timetable/{timetable}/mark-completed', [TimetableController::class, 'markSessionCompleted']);
+            Route::get('/timetable/{timetable}/details', [TimetableController::class, 'getTimetableDetails']);
+            Route::get('/timetable/export-pdf', [TimetableController::class, 'exportPdf']);
+            Route::get('/timetable/monthly-weekly-schedule', [TimetableController::class, 'getMonthlyWeeklySchedule']);
+            Route::get('/timetable/current-week', [TimetableController::class, 'getCurrentWeekSchedule']);
+            
+            // Messages routes
+            Route::get('/messages/recent', [LecturerController::class, 'getRecentMessages']);
             Route::get('/messages', [LecturerController::class, 'messages'])->name('messages');
-            Route::get('/profile', [LecturerController::class, 'Profile'])->name('profile');
+            Route::post('/messages', [LecturerController::class, 'sendMessage'])->name('messages.send');
+            Route::get('/messages/{id}', [LecturerController::class, 'viewMessage'])->name('messages.view');
+            Route::delete('/messages/{id}', [LecturerController::class, 'deleteMessage'])->name('messages.delete');
+            
+            // AJAX routes for messages
+            Route::get('/api/departments-for-messages', [LecturerController::class, 'getDepartmentsByFacultyForMessages'])
+                ->name('api.departments-for-messages');
+            Route::get('/api/levels-by-department', [LecturerController::class, 'getLevelsByDepartment'])
+                ->name('api.levels-by-department');
+            
+            // Profile routes
+            Route::get('/profile', [LecturerController::class, 'profile'])->name('profile');
             Route::put('/profile', [LecturerController::class, 'updateProfile'])->name('profile.update');
             Route::post('/profile/image', [LecturerController::class, 'updateProfileImage'])->name('profile.image');
             Route::put('/profile/password', [LecturerController::class, 'updatePassword'])->name('password.update');
-             // Timetable main views
 
+            // Timetable main views
             Route::get('/time-table', [TimetableController::class, 'index'])->name('time-table');
             Route::get('/timetable', [TimetableController::class, 'index'])->name('timetable'); // Added alias
             Route::get('/time-table/create', [TimetableController::class, 'create'])->name('timetable.create');
@@ -121,25 +141,27 @@ Route::middleware('auth')->group(function () {
             Route::put('/time-table/{timetable}', [TimetableController::class, 'update'])->name('timetable.update');
             Route::delete('/time-table/{timetable}', [TimetableController::class, 'destroy'])->name('timetable.destroy');
             Route::get('/time-table/export-pdf', [TimetableController::class, 'exportPdf'])->name('timetable.export-pdf');
-            
+
             // AJAX endpoints - these must match exactly with the JavaScript fetch URLs
-            // Debug: Ensure the route is properly defined with a name for clarity
             Route::get('/time-table/departments/{faculty_id}', [TimetableController::class, 'getDepartmentsByFaculty'])
                 ->name('timetable.departments');
             Route::get('/time-table/courses/{department_id}', [TimetableController::class, 'getCoursesByDepartment']);
             Route::post('/time-table/check-conflict', [TimetableController::class, 'checkConflict']);
-
 
             // Lecturer Push Notification routes
             Route::get('/push-notifications', [PushNotificationController::class, 'showForm'])->name('push.form');
             Route::post('/api/push/send', [PushNotificationController::class, 'sendNotification'])->name('push.send');
         });
     });
-    
+
     // Student routes
     Route::prefix('student')->name('student.')->group(function () {
         Route::middleware(CheckRole::class . ':student')->group(function () {
             Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('dashboard');
+            
+            // Add routes for students to view messages
+            Route::get('/messages', [StudentController::class, 'messages'])->name('messages');
+            Route::get('/messages/{id}', [StudentController::class, 'viewMessage'])->name('messages.view');
         });
     });
 });

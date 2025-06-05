@@ -175,6 +175,82 @@
             width: 1rem;
             height: 1rem;
         }
+
+        @media (max-width: 768px) {
+        /* Hide tables on mobile and show card layout instead */
+        .mobile-hide-table {
+            display: none !important;
+        }
+        
+        .mobile-show-cards {
+            display: block !important;
+        }
+        
+        /* Mobile timetable cards */
+        .mobile-timetable-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 1rem;
+        }
+        
+        .mobile-timetable-card .card-body {
+            padding: 1rem;
+        }
+        
+        .mobile-timetable-card .course-info {
+            margin-bottom: 0.75rem;
+        }
+        
+        .mobile-timetable-card .course-code {
+            font-weight: 600;
+            color: #007bff;
+            font-size: 1rem;
+        }
+        
+        .mobile-timetable-card .course-title {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+        
+        .mobile-timetable-card .schedule-info {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        
+        .mobile-timetable-card .progress {
+            height: 20px;
+            margin: 0.5rem 0;
+        }
+        
+        .mobile-timetable-card .action-buttons .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            margin: 0.125rem;
+        }
+        
+        /* Responsive button groups */
+        .mobile-btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        
+        .mobile-btn-group .btn {
+            flex: 1;
+            min-width: auto;
+        }
+    }
+    
+    /* Desktop - show tables, hide mobile cards */
+    @media (min-width: 769px) {
+        .mobile-hide-table {
+            display: block !important;
+        }
+        
+        .mobile-show-cards {
+            display: none !important;
+        }
+    }
     </style>
     <div class="container-fluid max-w-4xl " style="margin-top: 100px; margin-bottom: 100px;">
         <!-- Page Header -->
@@ -359,353 +435,527 @@
         </div>
 
 
-        <!-- Current Week Schedule (when filter is 'current') -->
-        @if ($currentFilter === 'current' && $weeklySchedule)
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card shadow">
-                        <div class="card-header py-3 d-flex align-items-center justify-content-between">
-                            <h6 class="m-0 font-weight-bold text-primary">Current Week Schedule</h6>
-                            <div>
-                                <a href="{{ route('lecturer.timetable.export-pdf') }}"
-                                    class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-file-pdf me-1"></i> <span class="d-none d-sm-inline">Export </span>PDF
-                                </a>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <!-- Desktop Table View -->
-                            <div class="d-none d-lg-block">
-                                <div class="table-responsive">
-                                    <!-- Your existing table code here -->
-                                </div>
-                            </div>
-
-                            <!-- Mobile Card View -->
-                            <div class="d-lg-none">
+<!-- Current Week Schedule (when filter is 'current') -->
+@if ($currentFilter === 'current' && $weeklySchedule)
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Current Week Schedule</h6>
+                <div>
+                    <a href="{{ route('lecturer.timetable.export-pdf') }}"
+                        class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-file-pdf me-1"></i> <span class="d-none d-sm-inline">Export </span>PDF
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Desktop Table View -->
+                <div class="d-none d-lg-block">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="18%">Day</th>
+                                    <th width="20%">Course</th>
+                                    <th width="15%">Time</th>
+                                    <th width="15%">Venue</th>
+                                    <th width="12%">Level</th>
+                                    <th width="20%">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                                 @php
                                     $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
                                     $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                                    $hasClasses = false;
                                 @endphp
 
                                 @foreach ($days as $index => $day)
-                                    @if (isset($weeklySchedule[$day]))
-                                        <div class="mb-3">
-                                            <h6 class="text-primary border-bottom pb-2 mb-3">{{ $dayNames[$index] }}</h6>
-                                            @foreach ($weeklySchedule[$day] as $timetable)
-                                                <div class="card mb-2 border-start border-primary border-3">
-                                                    <div class="card-body p-3">
-                                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                                            <div>
-                                                                <h6 class="card-title mb-1 text-primary">
-                                                                    {{ $timetable->course->course_code ?? $timetable->course_code }}
-                                                                </h6>
-                                                                <p class="card-text small mb-1">
-                                                                    {{ $timetable->course->course_title ?? $timetable->course_title }}
-                                                                </p>
-                                                            </div>
-                                                            <div class="text-end">
-                                                                @if (isset($timetable->completion_status))
-                                                                    @if ($timetable->completion_status === 'completed')
-                                                                        <span class="badge bg-success">Completed</span>
-                                                                    @elseif($timetable->completion_status === 'ongoing')
-                                                                        <span class="badge bg-warning">Ongoing</span>
-                                                                    @else
-                                                                        <span class="badge bg-secondary">Pending</span>
-                                                                    @endif
-                                                                @endif
-                                                            </div>
-                                                        </div>
+                                    @if (isset($weeklySchedule[$day]) && $weeklySchedule[$day]->count() > 0)
+                                        @php $hasClasses = true; @endphp
+                                        @foreach ($weeklySchedule[$day] as $timetable)
+                                            <tr>
+                                                @if ($loop->first)
+                                                    <td class="align-middle fw-bold" rowspan="{{ $weeklySchedule[$day]->count() }}">
+                                                        {{ $dayNames[$index] }}
+                                                    </td>
+                                                @endif
+                                                <td>
+                                                    <div class="fw-bold">{{ $timetable->course->course_code ?? $timetable->course_code }}</div>
+                                                    <div class="small text-muted">{{ $timetable->course->course_title ?? $timetable->course_title }}</div>
+                                                </td>
+                                                <td>
+                                                    {{ is_object($timetable->start_time) ? $timetable->start_time->format('H:i') : \Carbon\Carbon::parse($timetable->start_time)->format('H:i') }}
+                                                    -
+                                                    {{ is_object($timetable->end_time) ? $timetable->end_time->format('H:i') : \Carbon\Carbon::parse($timetable->end_time)->format('H:i') }}
+                                                </td>
+                                                <td>{{ $timetable->venue ?? 'N/A' }}</td>
+                                                <td>
+                                                    <span class="badge bg-info">Level {{ $timetable->level }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-primary view-details" data-timetable-id="{{ $timetable->id }}">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}" class="btn btn-secondary">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <button class="btn btn-danger delete-timetable"
+                                                            data-id="{{ $timetable->id }}"
+                                                            data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
+                                                            data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endif
+                                @endforeach
 
-                                                        <div class="row g-2 mb-2">
-                                                            <div class="col-6">
-                                                                <small class="text-muted">
-                                                                    <i class="bi bi-clock me-1"></i>
-                                                                    {{ is_object($timetable->start_time) ? $timetable->start_time->format('H:i') : \Carbon\Carbon::parse($timetable->start_time)->format('H:i') }}
-                                                                    -
-                                                                    {{ is_object($timetable->end_time) ? $timetable->end_time->format('H:i') : \Carbon\Carbon::parse($timetable->end_time)->format('H:i') }}
-                                                                </small>
-                                                            </div>
-                                                            <div class="col-6">
-                                                                <small class="text-muted">
-                                                                    <i
-                                                                        class="bi bi-geo-alt me-1"></i>{{ $timetable->venue ?? 'N/A' }}
-                                                                </small>
-                                                            </div>
-                                                        </div>
+                                @if (!$hasClasses)
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">
+                                            <p class="text-muted mb-0">No classes scheduled for this week.</p>
+                                            <a href="{{ route('lecturer.timetable.create') }}" class="btn btn-primary btn-sm mt-3">
+                                                <i class="bi bi-plus-circle me-1"></i>Add New Class
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <span class="badge bg-info">Level
-                                                                {{ $timetable->level }}</span>
-                                                            <div class="btn-group" role="group">
-                                                                <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}"
-                                                                    class="btn btn-sm btn-outline-secondary">
-                                                                    <i class="bi bi-pencil"></i>
-                                                                </a>
-                                                                <button
-                                                                    class="btn btn-sm btn-outline-danger delete-timetable"
-                                                                    data-id="{{ $timetable->id }}"
-                                                                    data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
-                                                                    data-bs-toggle="modal"
-                                                                    data-bs-target="#deleteTimetableModal">
-                                                                    <i class="bi bi-trash"></i>
-                                                                </button>
-                                                            </div>
+                <!-- Mobile Card View -->
+                <div class="d-lg-none">
+                    @php
+                        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                        $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                        $hasClasses = false;
+                    @endphp
+
+                    @foreach ($days as $index => $day)
+                        @if (isset($weeklySchedule[$day]) && $weeklySchedule[$day]->count() > 0)
+                            @php $hasClasses = true; @endphp
+                            <div class="mb-3">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">{{ $dayNames[$index] }}</h6>
+                                @foreach ($weeklySchedule[$day] as $timetable)
+                                    <div class="card mb-2 border-start border-primary border-3">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <h6 class="card-title mb-1 text-primary">
+                                                        {{ $timetable->course->course_code ?? $timetable->course_code }}
+                                                    </h6>
+                                                    <p class="card-text small mb-1">
+                                                        {{ $timetable->course->course_title ?? $timetable->course_title }}
+                                                    </p>
+                                                </div>
+                                                <div class="text-end">
+                                                    @if (isset($timetable->completion_status))
+                                                        @if ($timetable->completion_status === 'completed')
+                                                            <span class="badge bg-success">Completed</span>
+                                                        @elseif($timetable->completion_status === 'ongoing')
+                                                            <span class="badge bg-warning">Ongoing</span>
+                                                        @else
+                                                            <span class="badge bg-secondary">Pending</span>
+                                                        @endif
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="row g-2 mb-2">
+                                                <div class="col-6">
+                                                    <small class="text-muted">
+                                                        <i class="bi bi-clock me-1"></i>
+                                                        {{ is_object($timetable->start_time) ? $timetable->start_time->format('H:i') : \Carbon\Carbon::parse($timetable->start_time)->format('H:i') }}
+                                                        -
+                                                        {{ is_object($timetable->end_time) ? $timetable->end_time->format('H:i') : \Carbon\Carbon::parse($timetable->end_time)->format('H:i') }}
+                                                    </small>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted">
+                                                        <i class="bi bi-geo-alt me-1"></i>{{ $timetable->venue ?? 'N/A' }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="badge bg-info">Level {{ $timetable->level }}</span>
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-primary view-details" data-timetable-id="{{ $timetable->id }}">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}" class="btn btn-sm btn-secondary">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <button class="btn btn-sm btn-danger delete-timetable"
+                                                        data-id="{{ $timetable->id }}"
+                                                        data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
+                                                        data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    @endforeach
+
+                    @if (!$hasClasses)
+                        <div class="text-center py-4">
+                            <p class="text-muted mb-3">No classes scheduled for this week.</p>
+                            <a href="{{ route('lecturer.timetable.create') }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-circle me-1"></i>Add New Class
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+        <!-- Grouped Timetables (when filter is not 'current') -->
+        @if ($currentFilter !== 'current' && $groupedTimetables)
+        <div class="row">
+            <!-- Ongoing Classes -->
+            @if (count($groupedTimetables['ongoing'] ?? []) > 0)
+                <div class="col-12 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">Ongoing Classes</h6>
+                            <span class="badge bg-info">{{ count($groupedTimetables['ongoing']) }}</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Desktop Table View -->
+                            <div class="table-responsive mobile-hide-table">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Course</th>
+                                            <th>Schedule</th>
+                                            <th>Venue</th>
+                                            <th>Progress</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($groupedTimetables['ongoing'] as $timetable)
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-bold">{{ $timetable->course->course_code ?? $timetable->course_code }}</div>
+                                                    <div class="small">{{ $timetable->course->course_title ?? $timetable->course_title }}</div>
+                                                    <div class="small text-muted">Level {{ $timetable->level }}</div>
+                                                </td>
+                                                <td>
+                                                    <div>{{ $timetable->formatted_day ?? '' }}</div>
+                                                    <div class="small text-muted">{{ $timetable->time_range ?? '' }}</div>
+                                                    <div class="small text-muted">
+                                                        {{ $timetable->effective_date ? \Carbon\Carbon::parse($timetable->effective_date)->format('M d, Y') : 'No start date' }}
+                                                        @if ($timetable->end_date) - {{ \Carbon\Carbon::parse($timetable->end_date)->format('M d, Y') }} @endif
+                                                    </div>
+                                                </td>
+                                                <td>{{ $timetable->venue }}</td>
+                                                <td>
+                                                    <div class="progress" style="height: 20px;">
+                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                            style="width: {{ $timetable->getCompletionPercentage() }}%;"
+                                                            aria-valuenow="{{ $timetable->getCompletionPercentage() }}"
+                                                            aria-valuemin="0" aria-valuemax="100">
+                                                            {{ $timetable->getCompletionPercentage() }}%
                                                         </div>
                                                     </div>
+                                                    <div class="small text-muted mt-1">
+                                                        {{ $timetable->completed_sessions }} of {{ $timetable->total_sessions }} sessions
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-primary view-details" data-timetable-id="{{ $timetable->id }}">
+                                                        <i class="bi bi-eye me-1"></i>Details
+                                                    </button>
+                                                    <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}" class="btn btn-sm btn-secondary">
+                                                        <i class="bi bi-pencil me-1"></i>Edit
+                                                    </a>
+                                                    <button class="btn btn-sm btn-danger delete-timetable"
+                                                        data-id="{{ $timetable->id }}"
+                                                        data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
+                                                        data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
+                                                        <i class="bi bi-trash me-1"></i>Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+    
+                            <!-- Mobile Card View -->
+                            <div class="mobile-show-cards" style="display: none;">
+                                @foreach ($groupedTimetables['ongoing'] as $timetable)
+                                    <div class="card mobile-timetable-card">
+                                        <div class="card-body">
+                                            <div class="course-info">
+                                                <div class="course-code">{{ $timetable->course->course_code ?? $timetable->course_code }}</div>
+                                                <div class="course-title">{{ $timetable->course->course_title ?? $timetable->course_title }}</div>
+                                                <span class="badge bg-info">Level {{ $timetable->level }}</span>
+                                            </div>
+                                            
+                                            <div class="schedule-info mb-2">
+                                                <div><i class="bi bi-calendar me-1"></i>{{ $timetable->formatted_day ?? '' }}</div>
+                                                <div><i class="bi bi-clock me-1"></i>{{ $timetable->time_range ?? '' }}</div>
+                                                <div><i class="bi bi-geo-alt me-1"></i>{{ $timetable->venue }}</div>
+                                            </div>
+                                            
+                                            <div class="progress mb-2">
+                                                <div class="progress-bar bg-success" role="progressbar"
+                                                    style="width: {{ $timetable->getCompletionPercentage() }}%;"
+                                                    aria-valuenow="{{ $timetable->getCompletionPercentage() }}"
+                                                    aria-valuemin="0" aria-valuemax="100">
+                                                    {{ $timetable->getCompletionPercentage() }}%
                                                 </div>
-                                            @endforeach
+                                            </div>
+                                            <div class="small text-muted mb-3">
+                                                {{ $timetable->completed_sessions }} of {{ $timetable->total_sessions }} sessions completed
+                                            </div>
+                                            
+                                            <div class="action-buttons mobile-btn-group">
+                                                <button class="btn btn-primary view-details" data-timetable-id="{{ $timetable->id }}">
+                                                    <i class="bi bi-eye"></i> Details
+                                                </button>
+                                                <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}" class="btn btn-secondary">
+                                                    <i class="bi bi-pencil"></i> Edit
+                                                </a>
+                                                <button class="btn btn-danger delete-timetable"
+                                                    data-id="{{ $timetable->id }}"
+                                                    data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
+                                                    data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
+                                                    <i class="bi bi-trash"></i> Delete
+                                                </button>
+                                            </div>
                                         </div>
-                                    @endif
+                                    </div>
                                 @endforeach
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        @endif
+            @endif
+       <!-- Completed Classes -->
+       @if (count($groupedTimetables['completed'] ?? []) > 0)
+       <div class="col-12 mb-4">
+           <div class="card shadow">
+               <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                   <h6 class="m-0 font-weight-bold text-success">Completed Classes</h6>
+                   <span class="badge bg-success">{{ count($groupedTimetables['completed']) }}</span>
+               </div>
+               <div class="card-body">
+                   <!-- Desktop Table View -->
+                   <div class="table-responsive mobile-hide-table">
+                       <table class="table table-hover">
+                           <thead>
+                               <tr>
+                                   <th>Course</th>
+                                   <th>Schedule</th>
+                                   <th>Venue</th>
+                                   <th>Sessions</th>
+                                   <th>Actions</th>
+                               </tr>
+                           </thead>
+                           <tbody>
+                               @foreach ($groupedTimetables['completed'] as $timetable)
+                                   <tr>
+                                       <td>
+                                           <div class="fw-bold">{{ $timetable->course->course_code ?? $timetable->course_code }}</div>
+                                           <div class="small">{{ $timetable->course->course_title ?? $timetable->course_title }}</div>
+                                           <div class="small text-muted">Level {{ $timetable->level }}</div>
+                                       </td>
+                                       <td>
+                                           <div>{{ $timetable->formatted_day ?? '' }}</div>
+                                           <div class="small text-muted">{{ $timetable->time_range ?? '' }}</div>
+                                           <div class="small text-muted">
+                                               {{ $timetable->effective_date ? \Carbon\Carbon::parse($timetable->effective_date)->format('M d, Y') : 'No start date' }}
+                                               @if ($timetable->end_date) - {{ \Carbon\Carbon::parse($timetable->end_date)->format('M d, Y') }} @endif
+                                           </div>
+                                       </td>
+                                       <td>{{ $timetable->venue }}</td>
+                                       <td>
+                                           <span class="badge bg-success">
+                                               {{ $timetable->completed_sessions }} of {{ $timetable->total_sessions }} completed
+                                           </span>
+                                       </td>
+                                       <td>
+                                           <button class="btn btn-sm btn-primary view-details" data-timetable-id="{{ $timetable->id }}">
+                                               <i class="bi bi-eye me-1"></i>Details
+                                           </button>
+                                           <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}" class="btn btn-sm btn-secondary">
+                                               <i class="bi bi-pencil me-1"></i>Edit
+                                           </a>
+                                           <button class="btn btn-sm btn-danger delete-timetable"
+                                               data-id="{{ $timetable->id }}"
+                                               data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
+                                               data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
+                                               <i class="bi bi-trash me-1"></i>Delete
+                                           </button>
+                                       </td>
+                                   </tr>
+                               @endforeach
+                           </tbody>
+                       </table>
+                   </div>
 
-        <!-- Grouped Timetables (when filter is not 'current') -->
-        @if ($currentFilter !== 'current' && $groupedTimetables)
-            <div class="row">
-                <!-- Ongoing Classes -->
-                @if (count($groupedTimetables['ongoing'] ?? []) > 0)
-                    <div class="col-12 mb-4">
-                        <div class="card shadow">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="m-0 font-weight-bold text-primary">Ongoing Classes</h6>
-                                <span class="badge bg-info">{{ count($groupedTimetables['ongoing']) }}</span>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Course</th>
-                                                <th>Schedule</th>
-                                                <th>Venue</th>
-                                                <th>Progress</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($groupedTimetables['ongoing'] as $timetable)
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold">
-                                                            {{ $timetable->course->course_code ?? $timetable->course_code }}
-                                                        </div>
-                                                        <div class="small">
-                                                            {{ $timetable->course->course_title ?? $timetable->course_title }}
-                                                        </div>
-                                                        <div class="small text-muted">Level {{ $timetable->level }}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div>{{ $timetable->formatted_day ?? '' }}</div>
-                                                        <div class="small text-muted">{{ $timetable->time_range ?? '' }}
-                                                        </div>
-                                                        <div class="small text-muted">
-                                                            {{ $timetable->effective_date ? \Carbon\Carbon::parse($timetable->effective_date)->format('M d, Y') : 'No start date' }}
-                                                            @if ($timetable->end_date)
-                                                                -
-                                                                {{ \Carbon\Carbon::parse($timetable->end_date)->format('M d, Y') }}
-                                                            @endif
-                                                        </div>
-                                                    </td>
-                                                    <td>{{ $timetable->venue }}</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 20px;">
-                                                            <div class="progress-bar bg-success" role="progressbar"
-                                                                style="width: {{ $timetable->getCompletionPercentage() }}%;"
-                                                                aria-valuenow="{{ $timetable->getCompletionPercentage() }}"
-                                                                aria-valuemin="0" aria-valuemax="100">
-                                                                {{ $timetable->getCompletionPercentage() }}%
-                                                            </div>
-                                                        </div>
-                                                        <div class="small text-muted mt-1">
-                                                            {{ $timetable->completed_sessions }} of
-                                                            {{ $timetable->total_sessions }} sessions
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary view-details"
-                                                            data-timetable-id="{{ $timetable->id }}">
-                                                            <i class="bi bi-eye me-1"></i>Details
-                                                        </button>
-                                                        <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}"
-                                                            class="btn btn-sm btn-secondary">
-                                                            <i class="bi bi-pencil me-1"></i>Edit
-                                                        </a>
-                                                        <button class="btn btn-sm btn-danger delete-timetable"
-                                                            data-id="{{ $timetable->id }}"
-                                                            data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
-                                                            data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
-                                                            <i class="bi bi-trash me-1"></i>Delete
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
+                   <!-- Mobile Card View -->
+                   <div class="mobile-show-cards" style="display: none;">
+                       @foreach ($groupedTimetables['completed'] as $timetable)
+                           <div class="card mobile-timetable-card" style="border-left-color: #28a745;">
+                               <div class="card-body">
+                                   <div class="course-info">
+                                       <div class="course-code">{{ $timetable->course->course_code ?? $timetable->course_code }}</div>
+                                       <div class="course-title">{{ $timetable->course->course_title ?? $timetable->course_title }}</div>
+                                       <span class="badge bg-info">Level {{ $timetable->level }}</span>
+                                       <span class="badge bg-success ms-1">Completed</span>
+                                   </div>
+                                   
+                                   <div class="schedule-info mb-2">
+                                       <div><i class="bi bi-calendar me-1"></i>{{ $timetable->formatted_day ?? '' }}</div>
+                                       <div><i class="bi bi-clock me-1"></i>{{ $timetable->time_range ?? '' }}</div>
+                                       <div><i class="bi bi-geo-alt me-1"></i>{{ $timetable->venue }}</div>
+                                   </div>
+                                   
+                                   <div class="mb-3">
+                                       <span class="badge bg-success">
+                                           {{ $timetable->completed_sessions }} of {{ $timetable->total_sessions }} sessions completed
+                                       </span>
+                                   </div>
+                                   
+                                   <div class="action-buttons mobile-btn-group">
+                                       <button class="btn btn-primary view-details" data-timetable-id="{{ $timetable->id }}">
+                                           <i class="bi bi-eye"></i> Details
+                                       </button>
+                                       <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}" class="btn btn-secondary">
+                                           <i class="bi bi-pencil"></i> Edit
+                                       </a>
+                                       <button class="btn btn-danger delete-timetable"
+                                           data-id="{{ $timetable->id }}"
+                                           data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
+                                           data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
+                                           <i class="bi bi-trash"></i> Delete
+                                       </button>
+                                   </div>
+                               </div>
+                           </div>
+                       @endforeach
+                   </div>
+               </div>
+           </div>
+       </div>
+   @endif
+  <!-- Pending Classes -->
+  @if (count($groupedTimetables['pending'] ?? []) > 0)
+  <div class="col-12 mb-4">
+      <div class="card shadow">
+          <div class="card-header py-3 d-flex justify-content-between align-items-center">
+              <h6 class="m-0 font-weight-bold text-secondary">Pending Classes</h6>
+              <span class="badge bg-secondary">{{ count($groupedTimetables['pending']) }}</span>
+          </div>
+          <div class="card-body">
+              <!-- Desktop Table View -->
+              <div class="table-responsive mobile-hide-table">
+                  <table class="table table-hover">
+                      <thead>
+                          <tr>
+                              <th>Course</th>
+                              <th>Schedule</th>
+                              <th>Venue</th>
+                              <th>Status</th>
+                              <th>Actions</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          @foreach ($groupedTimetables['pending'] as $timetable)
+                              <tr>
+                                  <td>
+                                      <div class="fw-bold">{{ $timetable->course->course_code ?? $timetable->course_code }}</div>
+                                      <div class="small">{{ $timetable->course->course_title ?? $timetable->course_title }}</div>
+                                      <div class="small text-muted">Level {{ $timetable->level }}</div>
+                                  </td>
+                                  <td>
+                                      <div>{{ $timetable->formatted_day ?? '' }}</div>
+                                      <div class="small text-muted">{{ $timetable->time_range ?? '' }}</div>
+                                      <div class="small text-muted">
+                                          {{ $timetable->effective_date ? \Carbon\Carbon::parse($timetable->effective_date)->format('M d, Y') : 'No start date' }}
+                                          @if ($timetable->end_date) - {{ \Carbon\Carbon::parse($timetable->end_date)->format('M d, Y') }} @endif
+                                      </div>
+                                  </td>
+                                  <td>{{ $timetable->venue }}</td>
+                                  <td><span class="badge bg-secondary">Pending</span></td>
+                                  <td>
+                                      <button class="btn btn-sm btn-primary view-details" data-timetable-id="{{ $timetable->id }}">
+                                          <i class="bi bi-eye me-1"></i>Details
+                                      </button>
+                                      <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}" class="btn btn-sm btn-secondary">
+                                          <i class="bi bi-pencil me-1"></i>Edit
+                                      </a>
+                                      <button class="btn btn-sm btn-danger delete-timetable"
+                                          data-id="{{ $timetable->id }}"
+                                          data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
+                                          data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
+                                          <i class="bi bi-trash me-1"></i>Delete
+                                      </button>
+                                  </td>
+                              </tr>
+                          @endforeach
+                      </tbody>
+                  </table>
+              </div>
 
-                <!-- Completed Classes -->
-                @if (count($groupedTimetables['completed'] ?? []) > 0)
-                    <div class="col-12 mb-4">
-                        <div class="card shadow">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="m-0 font-weight-bold text-success">Completed Classes</h6>
-                                <span class="badge bg-success">{{ count($groupedTimetables['completed']) }}</span>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Course</th>
-                                                <th>Schedule</th>
-                                                <th>Venue</th>
-                                                <th>Sessions</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($groupedTimetables['completed'] as $timetable)
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold">
-                                                            {{ $timetable->course->course_code ?? $timetable->course_code }}
-                                                        </div>
-                                                        <div class="small">
-                                                            {{ $timetable->course->course_title ?? $timetable->course_title }}
-                                                        </div>
-                                                        <div class="small text-muted">Level {{ $timetable->level }}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div>{{ $timetable->formatted_day ?? '' }}</div>
-                                                        <div class="small text-muted">{{ $timetable->time_range ?? '' }}
-                                                        </div>
-                                                        <div class="small text-muted">
-                                                            {{ $timetable->effective_date ? \Carbon\Carbon::parse($timetable->effective_date)->format('M d, Y') : 'No start date' }}
-                                                            @if ($timetable->end_date)
-                                                                -
-                                                                {{ \Carbon\Carbon::parse($timetable->end_date)->format('M d, Y') }}
-                                                            @endif
-                                                        </div>
-                                                    </td>
-                                                    <td>{{ $timetable->venue }}</td>
-                                                    <td>
-                                                        <span class="badge bg-success">
-                                                            {{ $timetable->completed_sessions }} of
-                                                            {{ $timetable->total_sessions }} completed
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary view-details"
-                                                            data-timetable-id="{{ $timetable->id }}">
-                                                            <i class="bi bi-eye me-1"></i>Details
-                                                        </button>
-                                                        <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}"
-                                                            class="btn btn-sm btn-secondary">
-                                                            <i class="bi bi-pencil me-1"></i>Edit
-                                                        </a>
-                                                        <button class="btn btn-sm btn-danger delete-timetable"
-                                                            data-id="{{ $timetable->id }}"
-                                                            data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
-                                                            data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
-                                                            <i class="bi bi-trash me-1"></i>Delete
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
-                <!-- Pending Classes -->
-                @if (count($groupedTimetables['pending'] ?? []) > 0)
-                    <div class="col-12 mb-4">
-                        <div class="card shadow">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="m-0 font-weight-bold text-secondary">Pending Classes</h6>
-                                <span class="badge bg-secondary">{{ count($groupedTimetables['pending']) }}</span>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Course</th>
-                                                <th>Schedule</th>
-                                                <th>Venue</th>
-                                                <th>Status</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($groupedTimetables['pending'] as $timetable)
-                                                <tr>
-                                                    <td>
-                                                        <div class="fw-bold">
-                                                            {{ $timetable->course->course_code ?? $timetable->course_code }}
-                                                        </div>
-                                                        <div class="small">
-                                                            {{ $timetable->course->course_title ?? $timetable->course_title }}
-                                                        </div>
-                                                        <div class="small text-muted">Level {{ $timetable->level }}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div>{{ $timetable->formatted_day ?? '' }}</div>
-                                                        <div class="small text-muted">{{ $timetable->time_range ?? '' }}
-                                                        </div>
-                                                        <div class="small text-muted">
-                                                            {{ $timetable->effective_date ? \Carbon\Carbon::parse($timetable->effective_date)->format('M d, Y') : 'No start date' }}
-                                                            @if ($timetable->end_date)
-                                                                -
-                                                                {{ \Carbon\Carbon::parse($timetable->end_date)->format('M d, Y') }}
-                                                            @endif
-                                                        </div>
-                                                    </td>
-                                                    <td>{{ $timetable->venue }}</td>
-                                                    <td>
-                                                        <span class="badge bg-secondary">Pending</span>
-                                                    </td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary view-details"
-                                                            data-timetable-id="{{ $timetable->id }}">
-                                                            <i class="bi bi-eye me-1"></i>Details
-                                                        </button>
-                                                        <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}"
-                                                            class="btn btn-sm btn-secondary">
-                                                            <i class="bi bi-pencil me-1"></i>Edit
-                                                        </a>
-                                                        <button class="btn btn-sm btn-danger delete-timetable"
-                                                            data-id="{{ $timetable->id }}"
-                                                            data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
-                                                            data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
-                                                            <i class="bi bi-trash me-1"></i>Delete
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-            </div>
-        @endif
-
+              <!-- Mobile Card View -->
+              <div class="mobile-show-cards" style="display: none;">
+                  @foreach ($groupedTimetables['pending'] as $timetable)
+                      <div class="card mobile-timetable-card" style="border-left-color: #6c757d;">
+                          <div class="card-body">
+                              <div class="course-info">
+                                  <div class="course-code">{{ $timetable->course->course_code ?? $timetable->course_code }}</div>
+                                  <div class="course-title">{{ $timetable->course->course_title ?? $timetable->course_title }}</div>
+                                  <span class="badge bg-info">Level {{ $timetable->level }}</span>
+                                  <span class="badge bg-secondary ms-1">Pending</span>
+                              </div>
+                              
+                              <div class="schedule-info mb-3">
+                                  <div><i class="bi bi-calendar me-1"></i>{{ $timetable->formatted_day ?? '' }}</div>
+                                  <div><i class="bi bi-clock me-1"></i>{{ $timetable->time_range ?? '' }}</div>
+                                  <div><i class="bi bi-geo-alt me-1"></i>{{ $timetable->venue }}</div>
+                              </div>
+                              
+                              <div class="action-buttons mobile-btn-group">
+                                  <button class="btn btn-primary view-details" data-timetable-id="{{ $timetable->id }}">
+                                      <i class="bi bi-eye"></i> Details
+                                  </button>
+                                  <a href="{{ route('lecturer.timetable.edit', $timetable->id) }}" class="btn btn-secondary">
+                                      <i class="bi bi-pencil"></i> Edit
+                                  </a>
+                                  <button class="btn btn-danger delete-timetable"
+                                      data-id="{{ $timetable->id }}"
+                                      data-course="{{ $timetable->course->course_code ?? $timetable->course_code }}"
+                                      data-bs-toggle="modal" data-bs-target="#deleteTimetableModal">
+                                      <i class="bi bi-trash"></i> Delete
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                  @endforeach
+              </div>
+          </div>
+      </div>
+  </div>
+@endif
+</div>
+@endif
         @if (
             ($currentFilter === 'current' && empty($weeklySchedule)) ||
                 ($currentFilter !== 'current' &&

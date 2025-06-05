@@ -589,14 +589,14 @@ class TimetableController extends Controller
         }
         
         // If no effective date is set, assume it starts immediately
-        $effectiveDate = $timetable->effective_date ? Carbon::parse($timetable->effective_date) : Carbon::now();
+        $effectiveDate = $timetable->effective_date ? Carbon::parse($timetable->effective_date) : Carbon::now()->subDays(1);
         
-        // Check if effective date is after this week
+        // Check if effective date is after this week's end
         if ($effectiveDate->gt($endOfWeek)) {
             return false; // Starts after this week
         }
         
-        // Check if end date is before this week
+        // Check if end date is before this week's start
         if ($timetable->end_date) {
             $endDate = Carbon::parse($timetable->end_date);
             if ($endDate->lt($startOfWeek)) {
@@ -628,7 +628,6 @@ class TimetableController extends Controller
         
         return false;
     }
-
     // Update the existing groupTimetablesByDay method (keep as backup)
     private function groupTimetablesByDay($timetables)
     {
@@ -1210,4 +1209,47 @@ class TimetableController extends Controller
             ], 500);
         }
     }
+
+    public function debugWeeklySchedule(Request $request)
+{
+    $lecturer = Auth::user()->lecturerProfile;
+    
+    // Get current week date range
+    $startOfWeek = Carbon::now()->startOfWeek(); // Monday
+    $endOfWeek = Carbon::now()->endOfWeek(); // Sunday
+    
+    // Get all active timetables for the lecturer
+    $timetables = Timetable::with(['course', 'faculty', 'department'])
+        ->where('lecturer_id', $lecturer->id)
+        ->active()
+        ->get();
+    
+    $debugData = [];
+    
+    foreach ($timetables as $timetable) {
+        $hasSession = $this->hasSessionThisWeek($timetable, $startOfWeek, $endOfWeek);
+        
+        $debugData[] = [
+            'id' => $timetable->id,
+            'course_code' => $timetable->course->course_code ?? 'N/A',
+            'day_of_week' => $timetable->day_of_week,
+            'start_time' => $timetable->start_time,
+            'end_time' => $timetable->end_time,
+            'effective_date' => $timetable->effective_date,
+            'end_date' => $timetable->end_date,
+            'is_recurring' => $timetable->is_recurring,
+            'status' => $timetable->status,
+            'has_session_this_week' => $hasSession,
+            'session_dates' => $timetable->session_dates,
+            'completed_dates' => $timetable->completed_dates,
+        ];
+    }
+    
+    return response()->json([
+        'start_of_week' => $startOfWeek->format('Y-m-d'),
+        'end_of_week' => $endOfWeek->format('Y-m-d'),
+        'timetables_count' => count($timetables),
+        'timetables' => $debugData
+    ]);
+}
 }
