@@ -37,6 +37,7 @@ class Student extends Model
         'status',
         'address',
         'profile_image',
+        'phone_number',
     ];
 
     /**
@@ -70,5 +71,42 @@ class Student extends Model
     public function faculty()
     {
         return $this->hasOneThrough(Faculty::class, Department::class, 'id', 'id', 'department_id', 'faculty_id');
+    }
+
+    /**
+     * Get the messages that this student has read.
+     */
+    public function readMessages()
+    {
+        return $this->hasMany(MessageRead::class);
+    }
+
+    /**
+     * Check if this student has read a specific message.
+     *
+     * @param string $messageId
+     * @return bool
+     */
+    public function hasReadMessage($messageId)
+    {
+        return $this->readMessages()->where('message_id', $messageId)->exists();
+    }
+
+    /**
+     * Mark a message as read by this student.
+     *
+     * @param string $messageId
+     * @return \App\Models\MessageRead
+     */
+    public function markMessageAsRead($messageId)
+    {
+        if (!$this->hasReadMessage($messageId)) {
+            return MessageRead::create([
+                'message_id' => $messageId,
+                'student_id' => $this->id
+            ]);
+        }
+        
+        return $this->readMessages()->where('message_id', $messageId)->first();
     }
 }

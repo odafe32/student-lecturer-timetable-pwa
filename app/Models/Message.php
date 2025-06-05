@@ -74,6 +74,25 @@ class Message extends Model
     }
 
     /**
+     * Get the students who have read this message.
+     */
+    public function readBy()
+    {
+        return $this->hasMany(MessageRead::class);
+    }
+
+    /**
+     * Check if a specific student has read this message.
+     *
+     * @param string $studentId
+     * @return bool
+     */
+    public function isReadBy($studentId)
+    {
+        return $this->readBy()->where('student_id', $studentId)->exists();
+    }
+
+    /**
      * Scope a query to only include active messages.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
