@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('level');
             $table->enum('status', ['active', 'inactive', 'suspended', 'graduated'])->default('active');
             $table->text('address')->nullable();
+            $table->string('phone_number')->nullable();
             $table->string('profile_image')->nullable();
             $table->timestamps();
 

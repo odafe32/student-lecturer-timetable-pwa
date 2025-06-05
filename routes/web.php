@@ -153,15 +153,28 @@ Route::middleware('auth')->group(function () {
             Route::post('/api/push/send', [PushNotificationController::class, 'sendNotification'])->name('push.send');
         });
     });
-
-    // Student routes
-    Route::prefix('student')->name('student.')->group(function () {
-        Route::middleware(CheckRole::class . ':student')->group(function () {
-            Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('dashboard');
-            
-            // Add routes for students to view messages
-            Route::get('/messages', [StudentController::class, 'messages'])->name('messages');
-            Route::get('/messages/{id}', [StudentController::class, 'viewMessage'])->name('messages.view');
-        });
+// Student routes
+// Student routes
+Route::prefix('student')->name('student.')->group(function () {
+    Route::middleware(CheckRole::class . ':student')->group(function () {
+        Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('dashboard');
+        Route::get('/messages', [StudentController::class, 'messages'])->name('messages');
+        Route::get('/messages/{id}', [StudentController::class, 'viewMessage'])->name('messages.view');
+        Route::post('/messages/{id}/read', [StudentController::class, 'markMessageAsRead'])->name('messages.read');
+        Route::post('/messages/toggle-read/{id}', [StudentController::class, 'toggleMessageReadStatus'])->name('messages.toggle-read');
+        
+        // Timetable routes
+        Route::get('/view-timetable', [StudentController::class, 'timetable'])->name('view-timetable');
+        Route::get('/timetable/by-day', [StudentController::class, 'getTimetableByDay'])->name('timetable.by-day');
+        Route::get('/timetable/month-data', [StudentController::class, 'getMonthData'])->name('timetable.month-data');
+        Route::get('/timetable/week-data', [StudentController::class, 'getWeekData'])->name('timetable.week-data');
+        Route::get('/timetable/export-pdf', [StudentController::class, 'exportPdf'])->name('timetable.export-pdf');
+        
+        // Profile routes
+        Route::get('/profile', [StudentController::class, 'profile'])->name('profile');
+        Route::put('/profile', [StudentController::class, 'updateProfile'])->name('profile.update');
+        Route::post('/profile/image', [StudentController::class, 'updateProfileImage'])->name('profile.image');
+        Route::put('/profile/password', [StudentController::class, 'updatePassword'])->name('password.update');
     });
+});
 });
