@@ -85,7 +85,7 @@ class AuthController extends Controller
                             ->with('status', 'Welcome back, Lecturer!');
                     case 'student':
                         Log::info('Redirecting student to dashboard', ['user_id' => $user->id]);
-                        return redirect()->route('student.dashboard')
+                        return redirect()->route('student.view-timetable')
                             ->with('status', 'Welcome back, Student!');
                     default:
                         // Fallback for unknown roles

@@ -12,10 +12,277 @@ use App\Models\User;
 use App\Models\Message;
 use App\Models\MessageRead;
 use App\Models\Timetable;
+use App\Models\PushSubscription;
 use Carbon\Carbon;
 
 class StudentController extends Controller
 {
+  
+   public function subscribeToPushNotifications(Request $request)
+   {
+       try {
+           $request->validate([
+               'endpoint' => 'required|string',
+               'p256dh_key' => 'required|string',
+               'auth_token' => 'required|string',
+           ]);
+
+           $user = Auth::user();
+
+           // Check if subscription already exists
+           $existingSubscription = PushSubscription::where('user_id', $user->id)
+               ->where('endpoint', $request->endpoint)
+               ->first();
+
+           if ($existingSubscription) {
+               return response()->json([
+                   'success' => true,
+                   'message' => 'Already subscribed to push notifications'
+               ]);
+           }
+
+           // Create new subscription
+           PushSubscription::create([
+               'user_id' => $user->id,
+               'endpoint' => $request->endpoint,
+               'p256dh_key' => $request->p256dh_key,
+               'auth_token' => $request->auth_token,
+           ]);
+
+           \Log::info('Student subscribed to push notifications', [
+               'user_id' => $user->id,
+               'student_id' => $user->studentProfile->id ?? null
+           ]);
+
+           return response()->json([
+               'success' => true,
+               'message' => 'Successfully subscribed to push notifications'
+           ]);
+
+       } catch (\Exception $e) {
+           \Log::error('Failed to subscribe to push notifications', [
+               'user_id' => Auth::id(),
+               'error' => $e->getMessage()
+           ]);
+
+           return response()->json([
+               'success' => false,
+               'message' => 'Failed to subscribe to push notifications'
+           ], 500);
+       }
+   }
+
+   /**
+    * Unsubscribe from push notifications
+    *
+    * @param Request $request
+    * @return \Illuminate\Http\JsonResponse
+    */
+   public function unsubscribeFromPushNotifications(Request $request)
+   {
+       try {
+           $user = Auth::user();
+           $endpoint = $request->input('endpoint');
+
+           if ($endpoint) {
+               // Remove specific subscription
+               PushSubscription::where('user_id', $user->id)
+                   ->where('endpoint', $endpoint)
+                   ->delete();
+           } else {
+               // Remove all subscriptions for this user
+               PushSubscription::where('user_id', $user->id)->delete();
+           }
+
+           \Log::info('Student unsubscribed from push notifications', [
+               'user_id' => $user->id,
+               'endpoint' => $endpoint
+           ]);
+
+           return response()->json([
+               'success' => true,
+               'message' => 'Successfully unsubscribed from push notifications'
+           ]);
+
+       } catch (\Exception $e) {
+           \Log::error('Failed to unsubscribe from push notifications', [
+               'user_id' => Auth::id(),
+               'error' => $e->getMessage()
+           ]);
+
+           return response()->json([
+               'success' => false,
+               'message' => 'Failed to unsubscribe from push notifications'
+           ], 500);
+       }
+   }
+
+   /**
+    * Get notification preferences
+    *
+    * @return \Illuminate\Http\JsonResponse
+    */
+   public function getNotificationPreferences()
+   {
+       try {
+           $user = Auth::user();
+           $student = $user->studentProfile;
+
+           $subscriptions = PushSubscription::where('user_id', $user->id)->count();
+
+           return response()->json([
+               'success' => true,
+               'preferences' => [
+                   'push_enabled' => $subscriptions > 0,
+                   'subscription_count' => $subscriptions,
+                   'student_id' => $student->id ?? null,
+                   'department' => $student->department->name ?? 'Unknown',
+                   'faculty' => $student->department->faculty->name ?? 'Unknown',
+                   'level' => $student->level ?? 'Unknown'
+               ]
+           ]);
+
+       } catch (\Exception $e) {
+           \Log::error('Failed to get notification preferences', [
+               'user_id' => Auth::id(),
+               'error' => $e->getMessage()
+           ]);
+
+           return response()->json([
+               'success' => false,
+               'message' => 'Failed to load notification preferences'
+           ], 500);
+       }
+   }
+
+   /**
+    * Get unread message count for notifications
+    *
+    * @return \Illuminate\Http\JsonResponse
+    */
+   public function getUnreadMessageCount()
+   {
+       try {
+           $user = Auth::user();
+           $student = $user->studentProfile;
+
+           if (!$student) {
+               return response()->json([
+                   'success' => false,
+                   'count' => 0
+               ]);
+           }
+
+           // Count unread messages
+           $unreadCount = Message::where(function($query) use ($student) {
+                   // Messages targeted to this student's department and level
+                   $query->where('department_id', $student->department_id)
+                         ->where('level', $student->level);
+                   
+                   // Or messages targeted to all students in this department
+                   $query->orWhere(function($q) use ($student) {
+                       $q->where('department_id', $student->department_id)
+                         ->whereNull('level');
+                   });
+                   
+                   // Or messages targeted to all students in this faculty
+                   $query->orWhere(function($q) use ($student) {
+                       $facultyId = $student->department->faculty_id;
+                       $q->where('faculty_id', $facultyId)
+                         ->whereNull('department_id');
+                   });
+                   
+                   // Or messages targeted to all students
+                   $query->orWhere(function($q) {
+                       $q->whereNull('faculty_id')
+                         ->whereNull('department_id')
+                         ->whereNull('level');
+                   });
+               })
+               ->where('status', 'active')
+               ->whereDoesntHave('readBy', function($q) use ($student) {
+                   $q->where('student_id', $student->id);
+               })
+               ->count();
+
+           return response()->json([
+               'success' => true,
+               'count' => $unreadCount
+           ]);
+
+       } catch (\Exception $e) {
+           \Log::error('Failed to get unread message count', [
+               'user_id' => Auth::id(),
+               'error' => $e->getMessage()
+           ]);
+
+           return response()->json([
+               'success' => false,
+               'count' => 0
+           ]);
+       }
+   }
+
+   /**
+    * Get today's classes for notifications
+    *
+    * @return \Illuminate\Http\JsonResponse
+    */
+   public function getTodayClasses()
+   {
+       try {
+           $user = Auth::user();
+           $student = $user->studentProfile;
+
+           if (!$student) {
+               return response()->json([
+                   'success' => false,
+                   'classes' => []
+               ]);
+           }
+
+           $today = strtolower(Carbon::now()->format('l'));
+
+           $todayClasses = Timetable::with(['course', 'lecturer.user'])
+               ->where('status', 'active')
+               ->where('faculty_id', $student->department->faculty_id)
+               ->where('department_id', $student->department_id)
+               ->where('level', $student->level)
+               ->where('day_of_week', $today)
+               ->orderBy('start_time')
+               ->get()
+               ->map(function($timetable) {
+                   return [
+                       'id' => $timetable->id,
+                       'course_code' => $timetable->course->course_code ?? 'N/A',
+                       'course_title' => $timetable->course->course_title ?? 'N/A',
+                       'start_time' => $timetable->start_time,
+                       'end_time' => $timetable->end_time,
+                       'venue' => $timetable->venue ?? 'TBA',
+                       'lecturer' => $timetable->lecturer->user->name ?? 'Lecturer'
+                   ];
+               });
+
+           return response()->json([
+               'success' => true,
+               'classes' => $todayClasses,
+               'date' => Carbon::now()->format('Y-m-d'),
+               'day' => ucfirst($today)
+           ]);
+
+       } catch (\Exception $e) {
+           \Log::error('Failed to get today classes', [
+               'user_id' => Auth::id(),
+               'error' => $e->getMessage()
+           ]);
+
+           return response()->json([
+               'success' => false,
+               'classes' => []
+           ]);
+       }
+   }
+
     public function dashboard()
     {
         $user = Auth::user();
@@ -650,4 +917,5 @@ class StudentController extends Controller
             'weeklySchedule' => $weeklySchedule
         ]);
     }
+
 }

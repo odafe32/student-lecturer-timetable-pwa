@@ -37,12 +37,24 @@ if (app()->environment('local')) {
 
 // Auth routes (for authenticated users)
 Route::middleware('auth')->group(function () {
+    Route::get('/vapid-public-key', [PushNotificationController::class, 'getVapidPublicKey']);
+    
+    // Subscribe to push notifications
+    Route::post('/push-subscriptions', [PushNotificationController::class, 'subscribe']);
+    
+    // Unsubscribe from push notifications
+    Route::delete('/push-subscriptions', [PushNotificationController::class, 'unsubscribe']);
+    
+    // Test notification (optional - for testing)
+    Route::post('/test-notification', [PushNotificationController::class, 'testNotification']);
+
     Route::controller(AuthController::class)->group(function () {
         // Logout route
         Route::post('/logout', 'logout')->name('logout');
         // Change password route
         Route::get('/change-password', 'showChangePasswordForm')->name('password.change');
         Route::post('/change-password', 'changePassword')->name('password.change.update');
+        
     });
 
     // Push notification API endpoints (accessible to all authenticated users)
@@ -175,6 +187,15 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::put('/profile', [StudentController::class, 'updateProfile'])->name('profile.update');
         Route::post('/profile/image', [StudentController::class, 'updateProfileImage'])->name('profile.image');
         Route::put('/profile/password', [StudentController::class, 'updatePassword'])->name('password.update');
+
+        
+        // *** NEW: Push notification routes ***
+        Route::post('/push/subscribe', [StudentController::class, 'subscribeToPushNotifications'])->name('push.subscribe');
+        Route::post('/push/unsubscribe', [StudentController::class, 'unsubscribeFromPushNotifications'])->name('push.unsubscribe');
+        Route::get('/notifications/preferences', [StudentController::class, 'getNotificationPreferences'])->name('notifications.preferences');
+        Route::get('/notifications/unread-count', [StudentController::class, 'getUnreadMessageCount'])->name('notifications.unread-count');
+        Route::get('/notifications/today-classes', [StudentController::class, 'getTodayClasses'])->name('notifications.today-classes');
+
     });
 });
 });

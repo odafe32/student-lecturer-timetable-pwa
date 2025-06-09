@@ -182,12 +182,7 @@
             <!-- Footer Content -->
             <div class="footer-nav position-relative">
                 <ul class="h-100 d-flex align-items-center justify-content-between ps-0">
-                    <li class="{{ request()->routeIs('student.dashboard') ? 'active' : '' }}">
-                        <a href="{{ route('student.dashboard') }}">
-                            <i class="bi bi-house"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
+                    
 
                     <li class="{{ request()->routeIs('student.view-timetable') ? 'active' : '' }}">
                         <a href="{{ route('student.view-timetable') }}">
@@ -216,11 +211,379 @@
 
     <!-- All JavaScript Files -->
     <script>
-        // document.addEventListener('DOMContentLoaded', function() {
-        //     // Hide the initial preloader once the page is loaded
-        //     const initialPreloader = document.getElementById('preloader');
-        //     initialPreloader.style.display = 'none';
-        // });
+        setTimeout(() => {
+    location.reload();
+}, 120000);
+
+           // Push Notification Manager (inline for simplicity)
+           class PushNotificationManager {
+            constructor() {
+                this.isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+                this.isSubscribed = false;
+                this.swRegistration = null;
+                this.vapidPublicKey = null;
+            }
+
+            async init() {
+                if (!this.isSupported) {
+                    console.log('Push messaging is not supported');
+                    return;
+                }
+
+                try {
+                    await this.getVapidPublicKey();
+                    await this.registerServiceWorker();
+                    await this.checkSubscriptionStatus();
+                    this.initializeUI();
+                } catch (error) {
+                    console.error('Failed to initialize push notifications:', error);
+                }
+            }
+
+            async getVapidPublicKey() {
+                try {
+                    const response = await fetch('/api/vapid-public-key');
+                    const data = await response.json();
+                    if (data.success) {
+                        this.vapidPublicKey = data.publicKey;
+                    } else {
+                        throw new Error(data.error || 'Failed to get VAPID key');
+                    }
+                } catch (error) {
+                    console.error('Failed to get VAPID public key:', error);
+                    throw error;
+                }
+            }
+
+            async registerServiceWorker() {
+                try {
+                    this.swRegistration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service Worker registered successfully');
+                } catch (error) {
+                    console.error('Service Worker registration failed:', error);
+                    throw error;
+                }
+            }
+
+            async checkSubscriptionStatus() {
+                try {
+                    const subscription = await this.swRegistration.pushManager.getSubscription();
+                    this.isSubscribed = !(subscription === null);
+                    
+                    if (this.isSubscribed) {
+                        console.log('User is already subscribed to push notifications');
+                    }
+                } catch (error) {
+                    console.error('Error checking subscription status:', error);
+                }
+            }
+
+            async subscribeUser() {
+                try {
+                    const permission = await Notification.requestPermission();
+                    
+                    if (permission !== 'granted') {
+                        console.log('Notification permission denied');
+                        this.showToast('🚫 Notification permission denied. You can enable it in your browser settings.', 'warning');
+                        return;
+                    }
+
+                    const applicationServerKey = this.urlB64ToUint8Array(this.vapidPublicKey);
+                    
+                    const subscription = await this.swRegistration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: applicationServerKey
+                    });
+
+                    console.log('User subscribed to push notifications');
+                    
+                    await this.sendSubscriptionToServer(subscription);
+                    
+                    this.isSubscribed = true;
+                    this.updateUI();
+                    this.showToast('✅ Notifications enabled! You\'ll now receive push notifications.', 'success');
+                    
+                } catch (error) {
+                    console.error('Failed to subscribe user:', error);
+                    this.showToast('❌ Failed to enable notifications. Please try again.', 'error');
+                }
+            }
+
+            async unsubscribeUser() {
+                try {
+                    const subscription = await this.swRegistration.pushManager.getSubscription();
+                    
+                    if (subscription) {
+                        await subscription.unsubscribe();
+                        await this.removeSubscriptionFromServer(subscription);
+                        console.log('User unsubscribed from push notifications');
+                    }
+                    
+                    this.isSubscribed = false;
+                    this.updateUI();
+                    this.showToast('🔕 Notifications disabled.', 'info');
+                    
+                } catch (error) {
+                    console.error('Failed to unsubscribe user:', error);
+                    this.showToast('❌ Failed to disable notifications. Please try again.', 'error');
+                }
+            }
+
+            async sendSubscriptionToServer(subscription) {
+                try {
+                    const response = await fetch('/api/push-subscriptions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            subscription: subscription
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (!data.success) {
+                        throw new Error(data.error || 'Failed to save subscription on server');
+                    }
+
+                    console.log('Subscription saved on server');
+                } catch (error) {
+                    console.error('Error sending subscription to server:', error);
+                    throw error;
+                }
+            }
+
+            async removeSubscriptionFromServer(subscription) {
+                try {
+                    const response = await fetch('/api/push-subscriptions', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            subscription: subscription
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (!data.success) {
+                        throw new Error(data.error || 'Failed to remove subscription from server');
+                    }
+
+                    console.log('Subscription removed from server');
+                } catch (error) {
+                    console.error('Error removing subscription from server:', error);
+                    throw error;
+                }
+            }
+
+            initializeUI() {
+                this.createNotificationToggle();
+                this.createNotificationBanner();
+            }
+
+            createNotificationToggle() {
+                if (document.getElementById('notification-toggle')) {
+                    this.updateUI();
+                    return;
+                }
+
+                const toggleHTML = `
+                    <div id="notification-toggle" class="bg-white rounded-lg shadow-sm border p-4 mb-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="notification-icon mr-3">
+                                    <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM9 7h6m0 0V1m0 6l5-5M9 7L4 2m5 5v6m0-6H3"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Push Notifications</h4>
+                                    <p class="text-sm text-gray-500" id="notification-status">Get notified about new messages and timetable updates</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button id="test-notification-btn" class="px-3 py-1 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors" style="display: none;">
+                                    Test
+                                </button>
+                                <button id="notification-btn" class="px-4 py-2 rounded-md font-medium transition-colors">
+                                    Enable Notifications
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const container = document.querySelector('.dashboard-content') || document.querySelector('main') || document.body;
+                container.insertAdjacentHTML('afterbegin', toggleHTML);
+
+                document.getElementById('notification-btn').addEventListener('click', () => {
+                    if (this.isSubscribed) {
+                        this.unsubscribeUser();
+                    } else {
+                        this.subscribeUser();
+                    }
+                });
+
+                document.getElementById('test-notification-btn').addEventListener('click', () => {
+                    this.sendTestNotification();
+                });
+
+                this.updateUI();
+            }
+
+            createNotificationBanner() {
+                if (this.isSubscribed || Notification.permission === 'denied') {
+                    return;
+                }
+
+                const bannerHTML = `
+                    <div id="notification-banner" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <p class="text-sm text-blue-700">
+                                    <strong>Stay Updated!</strong> Enable push notifications to receive instant alerts about new messages and timetable changes.
+                                </p>
+                            </div>
+                            <div class="ml-auto pl-3">
+                                <div class="-mx-1.5 -my-1.5">
+                                    <button id="enable-notifications-banner" class="inline-flex bg-blue-50 rounded-md p-1.5 text-blue-500 hover:bg-blue-100 focus:outline-none">
+                                        Enable
+                                    </button>
+                                    <button id="dismiss-banner" class="inline-flex bg-blue-50 rounded-md p-1.5 text-blue-400 hover:bg-blue-100 focus:outline-none ml-2">
+                                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const container = document.querySelector('.dashboard-content') || document.querySelector('main') || document.body;
+                container.insertAdjacentHTML('afterbegin', bannerHTML);
+
+                document.getElementById('enable-notifications-banner').addEventListener('click', () => {
+                    this.subscribeUser();
+                    this.dismissBanner();
+                });
+
+                document.getElementById('dismiss-banner').addEventListener('click', () => {
+                    this.dismissBanner();
+                });
+            }
+
+            updateUI() {
+                const btn = document.getElementById('notification-btn');
+                const status = document.getElementById('notification-status');
+                const testBtn = document.getElementById('test-notification-btn');
+                
+                if (!btn || !status) return;
+
+                if (this.isSubscribed) {
+                    btn.textContent = 'Disable Notifications';
+                    btn.className = 'px-4 py-2 rounded-md font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200';
+                    status.textContent = 'You will receive push notifications';
+                    if (testBtn) testBtn.style.display = 'block';
+                } else {
+                    btn.textContent = 'Enable Notifications';
+                    btn.className = 'px-4 py-2 rounded-md font-medium transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200';
+                    status.textContent = 'Get notified about new messages and timetable updates';
+                    if (testBtn) testBtn.style.display = 'none';
+                }
+            }
+
+            async sendTestNotification() {
+                try {
+                    const response = await fetch('/api/test-notification', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showToast('🧪 Test notification sent! Check your notifications.', 'success');
+                    } else {
+                        this.showToast('❌ ' + (data.error || 'Failed to send test notification'), 'error');
+                    }
+                } catch (error) {
+                    console.error('Failed to send test notification:', error);
+                    this.showToast('❌ Failed to send test notification', 'error');
+                }
+            }
+
+            dismissBanner() {
+                const banner = document.getElementById('notification-banner');
+                if (banner) {
+                    banner.remove();
+                }
+            }
+
+            showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 transform translate-x-full`;
+                
+                const bgColor = {
+                    success: 'bg-green-500',
+                    error: 'bg-red-500',
+                    warning: 'bg-yellow-500',
+                    info: 'bg-blue-500'
+                }[type] || 'bg-blue-500';
+                
+                toast.className += ` ${bgColor} text-white`;
+                toast.textContent = message;
+                
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full');
+                }, 100);
+                
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+
+            urlB64ToUint8Array(base64String) {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding)
+                    .replace(/-/g, '+')
+                    .replace(/_/g, '/');
+
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const pushManager = new PushNotificationManager();
+            pushManager.init();
+        });
     </script>
     <script src="{{ url('js/bootstrap.bundle.min.js' . env('CACHE_VERSION')) }}"></script>
     <script src="{{ url('js/slideToggle.min.js' . env('CACHE_VERSION')) }}"></script>

@@ -275,6 +275,12 @@ class TimetableController extends Controller
         if (isset($timetable->is_recurring) && $timetable->is_recurring) {
             $timetable->updateSessionDates();
         }
+
+        try {
+            app(StudentNotificationService::class)->notifyTimetableUpdate($timetable);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send timetable notification: ' . $e->getMessage());
+        }
         
         return redirect()->route('lecturer.time-table')
             ->with('success', 'Timetable entry created successfully!');

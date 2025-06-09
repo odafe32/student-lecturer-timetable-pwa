@@ -30,7 +30,7 @@ class RedirectIfAuthenticated
                     case 'lecturer':
                         return redirect()->route('lecturer.dashboard');
                     case 'student':
-                        return redirect()->route('student.dashboard');
+                        return redirect()->route('student.view-timetable');
                     default:
                         return redirect(RouteServiceProvider::HOME);
                 }

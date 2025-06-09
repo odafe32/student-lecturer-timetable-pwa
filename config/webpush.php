@@ -7,9 +7,9 @@ return [
      * These keys must be safely stored and should not change.
      */
     'vapid' => [
-        'subject' => env('VAPID_SUBJECT'),
-        'public_key' => env('VAPID_PUBLIC_KEY'),
-        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('WEBPUSH_VAPID_SUBJECT', 'mailto:admin@yourapp.com'),
+        'public_key' => env('WEBPUSH_VAPID_PUBLIC_KEY'),
+        'private_key' => env('WEBPUSH_VAPID_PRIVATE_KEY'),
         'pem_file' => env('VAPID_PEM_FILE'),
     ],
 
