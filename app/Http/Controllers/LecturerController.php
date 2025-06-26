@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rules\Password;
-use App\Http\Controllers\PushNotificationController;
 use App\Models\Faculty;
 use App\Models\Department;
 use App\Models\Message;
 use App\Models\Student;
 use App\Models\Timetable;
 use Carbon\Carbon;
+use App\Services\StudentNotificationService; 
 
 class LecturerController extends Controller
 {
@@ -566,19 +566,13 @@ class LecturerController extends Controller
         // Get count of recipients for feedback message
         $recipientCount = $message->recipients()->count();
 
-        // If push notification controller exists, send notifications to students
-        if (class_exists(PushNotificationController::class)) {
-            $recipients = $message->recipients()->with('user')->get();
-            foreach ($recipients as $student) {
-                if ($student->user) {
-                    app(PushNotificationController::class)->sendNotificationToUser(
-                        $student->user,
-                        $request->title,
-                        $request->content
-                    );
-                }
-            }
+
+        try {
+            app(StudentNotificationService::class)->notifyNewMessage($message);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send message notification: ' . $e->getMessage());
         }
+        
 
         return redirect()->route('lecturer.messages')
             ->with('success', "Message sent successfully to {$recipientCount} students!");

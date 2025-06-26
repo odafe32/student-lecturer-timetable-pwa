@@ -38,7 +38,7 @@
                 </div>
             </div>
 
-            <!-- View Selector Tabs -->
+            <!-- View Selector Tabs --> 
             <div class="card mb-3">
                 <div class="card-body p-2">
                     <ul class="nav nav-pills nav-justified" id="viewTabs" role="tablist">
